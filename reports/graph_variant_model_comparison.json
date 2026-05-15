@@ -1,0 +1,9 @@
+{
+  "notes": {
+    "mapping_fix_applied": true,
+    "full_refined_temporal_source": "gcn_temporal_metrics_annual_only.json",
+    "obsolete_previous_results": [
+      "all reports based on 38.83% MERRA/monthlyagg missingness caused by SHRP_ID formatting mismatch"
+    ]
+  }
+}

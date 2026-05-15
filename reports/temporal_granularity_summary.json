@@ -1,0 +1,145 @@
+{
+  "distress_sheet_reports": [
+    {
+      "sheet": "ANALYSIS_DIS_AC",
+      "date_fields": [
+        "SURVEY_DATE",
+        "SURVEY_WIDTH"
+      ],
+      "rows": 13097,
+      "valid_dated_rows": 13097,
+      "unique_survey_dates": 3492,
+      "unique_years": 37,
+      "unique_months": 370
+    },
+    {
+      "sheet": "ANALYSIS_DIS_CRCP",
+      "date_fields": [
+        "SURVEY_DATE",
+        "SURVEY_WIDTH"
+      ],
+      "rows": 544,
+      "valid_dated_rows": 544,
+      "unique_survey_dates": 392,
+      "unique_years": 31,
+      "unique_months": 150
+    },
+    {
+      "sheet": "ANALYSIS_DIS_JPCC",
+      "date_fields": [
+        "SURVEY_DATE",
+        "SURVEY_WIDTH"
+      ],
+      "rows": 5750,
+      "valid_dated_rows": 5750,
+      "unique_survey_dates": 2050,
+      "unique_years": 36,
+      "unique_months": 328
+    }
+  ],
+  "traffic_sheet_reports": [
+    {
+      "sheet": "TRF_TREND",
+      "date_fields": [
+        "YEAR"
+      ],
+      "year_present": true,
+      "month_present": false,
+      "unique_years": 88,
+      "years_covered": "1937-2024",
+      "rows": 117776
+    },
+    {
+      "sheet": "TRF_TREND_1",
+      "date_fields": [
+        "YEAR"
+      ],
+      "year_present": true,
+      "month_present": false,
+      "unique_years": 88,
+      "years_covered": "1937-2024",
+      "rows": 117776
+    },
+    {
+      "sheet": "TRF_TREND_2",
+      "date_fields": [
+        "YEAR"
+      ],
+      "year_present": true,
+      "month_present": false,
+      "unique_years": 88,
+      "years_covered": "1937-2024",
+      "rows": 117776
+    }
+  ],
+  "maintenance_sheet_reports": [
+    {
+      "sheet": "PROJECT_ID_EXP",
+      "date_fields": [],
+      "date_nonnull": {},
+      "rows": 2581
+    },
+    {
+      "sheet": "PROJECT_HIST_AGE_EXP",
+      "date_fields": [
+        "CONSTRUCTION_DATE",
+        "TRAFFIC_OPEN_DATE",
+        "YEAR_WIDENED"
+      ],
+      "date_nonnull": {
+        "CONSTRUCTION_DATE": 782,
+        "TRAFFIC_OPEN_DATE": 782
+      },
+      "rows": 782
+    }
+  ],
+  "summary": [
+    {
+      "data_family": "distress",
+      "finest_available_time_unit": "dated survey observations",
+      "regularity": "irregular dated events",
+      "key_date_fields": "SURVEY_DATE; SURVEY_WIDTH",
+      "years_covered": "1988-2024",
+      "months_covered": 379,
+      "feasibility_for_monthly_modelling": "no",
+      "recommendation": "No: distress surveys are irregular and sparse; monthly panel would be mostly missing."
+    },
+    {
+      "data_family": "traffic",
+      "finest_available_time_unit": "year",
+      "regularity": "regular annual",
+      "key_date_fields": "YEAR",
+      "years_covered": "1937-2024",
+      "months_covered": 0,
+      "feasibility_for_monthly_modelling": "no",
+      "recommendation": "No: traffic inputs are annual trend records with YEAR only, no monthly support."
+    },
+    {
+      "data_family": "maintenance",
+      "finest_available_time_unit": "dated events",
+      "regularity": "irregular dated events",
+      "key_date_fields": "CONSTRUCTION_DATE; TRAFFIC_OPEN_DATE; YEAR_WIDENED",
+      "years_covered": "1985-2014",
+      "months_covered": 70,
+      "feasibility_for_monthly_modelling": "partial",
+      "recommendation": "Partial: exact dated events exist for some projects, so monthly status can be approximated, but it would rely on construction/opening intervals rather than true monthly maintenance state observations."
+    },
+    {
+      "data_family": "climate",
+      "finest_available_time_unit": "month",
+      "regularity": "regular monthly",
+      "key_date_fields": "YEAR; MONTH",
+      "years_covered": "1980-2025",
+      "months_covered": 552,
+      "feasibility_for_monthly_modelling": "yes",
+      "recommendation": "Yes for climate alone, but monthly climate should likely be aggregated unless other data families also support monthly panels."
+    }
+  ],
+  "distress_overall": {
+    "unique_survey_dates": 4437,
+    "unique_years": 37,
+    "unique_year_months": 379,
+    "median_gap_months_per_node_median": 0.022505133470225876,
+    "repeated_monthly_node_pct": 97.37460815047022
+  }
+}

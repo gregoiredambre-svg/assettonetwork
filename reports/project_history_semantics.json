@@ -1,0 +1,134 @@
+{
+  "project_hist_age_exp": {
+    "n_rows": 782,
+    "columns": [
+      "STATE_CODE",
+      "STATE_CODE_EXP",
+      "SHRP_ID",
+      "CONSTRUCTION_DATE",
+      "TRAFFIC_OPEN_DATE",
+      "YEAR_WIDENED",
+      "ORIGINAL_NO_LANES",
+      "FINAL_NO_LANES",
+      "LANE_ADDED_NO"
+    ],
+    "table_reference": [
+      {
+        "TABLE_ALIAS": "Project History and Age",
+        "TABLE_DESCRIPTION": "Age information for events that took place prior to the section becoming part of the LTPP program.",
+        "CLASS_NAME": "Original Surface Construction Dates"
+      }
+    ],
+    "contains_explicit_project_type_field": false,
+    "contains_explicit_reason_field": false,
+    "date_fields": [
+      "CONSTRUCTION_DATE",
+      "TRAFFIC_OPEN_DATE",
+      "YEAR_WIDENED"
+    ],
+    "interpretation": "broad_project_or_construction_history"
+  },
+  "experiment_section": {
+    "n_rows": 7934,
+    "table_reference": [
+      {
+        "TABLE_ALIAS": "Experiment Section",
+        "TABLE_DESCRIPTION": "Contains the time history of changes in construction numbers, experiment designations, and reasons for these changes.",
+        "CLASS_NAME": "Experiment Type and Improvement (M&R) History"
+      }
+    ],
+    "contains_reason_field": true,
+    "reason_field": "CN_CHANGE_REASON / CN_CHANGE_REASON_EXP",
+    "reason_codetype": "MAINT_WORK",
+    "date_fields": [
+      "CN_ASSIGN_DATE",
+      "ASSIGN_DATE",
+      "DEASSIGN_DATE"
+    ],
+    "sample_top_categories": [
+      {
+        "project_event_category": "Missing / not recorded",
+        "count": 2840
+      },
+      {
+        "project_event_category": "Crack Sealing",
+        "count": 726
+      },
+      {
+        "project_event_category": "Patch Pot Holes - Hand Spread, Compacted with Truck",
+        "count": 394
+      },
+      {
+        "project_event_category": "Asphalt Concrete Overlay",
+        "count": 297
+      },
+      {
+        "project_event_category": "Aggregate Seal Coat",
+        "count": 282
+      },
+      {
+        "project_event_category": "Partial depth patching of PCC pavements at joints",
+        "count": 243
+      },
+      {
+        "project_event_category": "Skin Patching (hand tools/hot pot to apply liquid asphalt and aggregate)",
+        "count": 211
+      },
+      {
+        "project_event_category": "Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing",
+        "count": 194
+      },
+      {
+        "project_event_category": "Mill Off AC and Overlay with AC ",
+        "count": 164
+      },
+      {
+        "project_event_category": "Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 137
+      },
+      {
+        "project_event_category": "Manual Premix Spot Patch (hand spreading and compacting with roller)",
+        "count": 136
+      },
+      {
+        "project_event_category": "Slurry Seal Coat",
+        "count": 112
+      },
+      {
+        "project_event_category": "Grinding Surface",
+        "count": 109
+      },
+      {
+        "project_event_category": "Full Depth Patch of AC Pavement (removing damaged material, repairing supporting material, and repairing)",
+        "count": 105
+      },
+      {
+        "project_event_category": "AC Shoulder Restoration",
+        "count": 88
+      }
+    ]
+  },
+  "distress_linkage": {
+    "distress_tables_have_survey_date": true,
+    "distress_tables_have_construction_no": true,
+    "project_hist_age_exp_has_construction_no": false,
+    "direct_reason_link_to_cracking_exists": false,
+    "can_link_pre_project_distress_directly": false,
+    "can_link_pre_project_distress_indirectly": true,
+    "indirect_linkage_note": "Distress can be aligned indirectly by section, survey date, and sometimes construction number, but project records do not explicitly state that cracking caused the intervention."
+  },
+  "current_variable_interpretation": {
+    "under_maintenance": "uncertain_proxy_if_built_from_PROJECT_HIST_AGE_EXP_using_CONSTRUCTION_DATE_and_TRAFFIC_OPEN_DATE",
+    "years_since_last_treatment": "treatment_exposure_proxy",
+    "recommended_renaming": {
+      "under_maintenance": "under_project_interval",
+      "years_since_last_treatment": "years_since_last_project_event"
+    }
+  },
+  "conclusion": {
+    "all_projects_caused_by_cracking": false,
+    "project_records_true_maintenance_only": false,
+    "better_source_than_project_hist_age_exp": "EXPERIMENT_SECTION",
+    "implication_for_temporal_gcn": "Neighbour project features should be interpreted as broader M&R/project-history exposure rather than confirmed distress-driven maintenance caused by cracking."
+  }
+}

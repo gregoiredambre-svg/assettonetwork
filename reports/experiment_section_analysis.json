@@ -1,0 +1,229 @@
+{
+  "experiment_section_table_reference": {
+    "TABLE_ALIAS": "Experiment Section",
+    "TABLE_DESCRIPTION": "Contains the time history of changes in construction numbers, experiment designations, and reasons for these changes.",
+    "CLASS_NAME": "Experiment Type and Improvement (M&R) History"
+  },
+  "n_experiment_section_rows": 7934,
+  "n_event_rows_with_year": 7934,
+  "top_treatment_groups": {
+    "unknown": 2840,
+    "patching": 1639,
+    "crack_sealing": 1409,
+    "asphalt_overlay": 1219,
+    "seal_coat": 519,
+    "grinding": 124,
+    "shoulder_restoration": 117,
+    "reconstruction_or_major_rehab": 66,
+    "other_maintenance": 1
+  },
+  "top_treatment_labels": {
+    "Missing / not recorded": 2840,
+    "Crack Sealing": 726,
+    "Patch Pot Holes - Hand Spread, Compacted with Truck": 394,
+    "Asphalt Concrete Overlay": 297,
+    "Aggregate Seal Coat": 282,
+    "Partial depth patching of PCC pavements at joints": 243,
+    "Skin Patching (hand tools/hot pot to apply liquid asphalt and aggregate)": 211,
+    "Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing": 194,
+    "Mill Off AC and Overlay with AC": 164,
+    "Partial Depth Patching of PCC Pavement Other Than at Joint": 137,
+    "Manual Premix Spot Patch (hand spreading and compacting with roller)": 136,
+    "Slurry Seal Coat": 112,
+    "Grinding Surface": 109,
+    "Full Depth Patch of AC Pavement (removing damaged material, repairing supporting material, and repairing)": 105,
+    "AC Shoulder Restoration": 88,
+    "AC Shoulder Restoration, Asphalt Concrete Overlay": 81,
+    "AC Shoulder Restoration, Mill Off AC and Overlay with AC": 74,
+    "Mill Existing Pavement and Overlay with Hot-Mix Recycled AC": 74,
+    "Lane-Shoulder Longitudinal Joint Sealing": 73,
+    "Full Depth Patching of PCC Pavement Other Than at Joint": 58
+  },
+  "pre_event_available_rows": 3702,
+  "neighbour_effect_rows": 2741,
+  "case_study_candidates": [
+    {
+      "node_id": "55_0901",
+      "state": "Wisconsin",
+      "route": "_",
+      "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Partial depth patching of PCC pavements at joints",
+      "event_year": 1992
+    },
+    {
+      "node_id": "55_0903",
+      "state": "Wisconsin",
+      "route": "_",
+      "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Partial depth patching of PCC pavements at joints",
+      "event_year": 1992
+    },
+    {
+      "node_id": "55_0908",
+      "state": "Wisconsin",
+      "route": "_",
+      "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Partial depth patching of PCC pavements at joints",
+      "event_year": 1992
+    },
+    {
+      "node_id": "55_0907",
+      "state": "Wisconsin",
+      "route": "_",
+      "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Partial depth patching of PCC pavements at joints",
+      "event_year": 1992
+    },
+    {
+      "node_id": "55_0909",
+      "state": "Wisconsin",
+      "route": "_",
+      "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Partial depth patching of PCC pavements at joints",
+      "event_year": 1992
+    },
+    {
+      "node_id": "55_0902",
+      "state": "Wisconsin",
+      "route": "_",
+      "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Partial depth patching of PCC pavements at joints",
+      "event_year": 1992
+    },
+    {
+      "node_id": "29_0608",
+      "state": "Missouri",
+      "route": "_",
+      "treatment_label": "Longitudinal Subdrains",
+      "event_year": 1992
+    },
+    {
+      "node_id": "29_0660",
+      "state": "Missouri",
+      "route": "_",
+      "treatment_label": "Asphalt Concrete Overlay, Fracture Treatment of PCC Pavement as Base for New AC Surface",
+      "event_year": 1992
+    },
+    {
+      "node_id": "29_0659",
+      "state": "Missouri",
+      "route": "_",
+      "treatment_label": "Asphalt Concrete Overlay, Fracture Treatment of PCC Pavement as Base for New AC Surface",
+      "event_year": 1992
+    },
+    {
+      "node_id": "55_A901",
+      "state": "Wisconsin",
+      "route": "2_43",
+      "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Partial depth patching of PCC pavements at joints",
+      "event_year": 1992
+    },
+    {
+      "node_id": "55_A908",
+      "state": "Wisconsin",
+      "route": "2_43",
+      "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Partial depth patching of PCC pavements at joints",
+      "event_year": 1992
+    },
+    {
+      "node_id": "29_0662",
+      "state": "Missouri",
+      "route": "_",
+      "treatment_label": "Asphalt Concrete Overlay, Longitudinal Subdrains, Fracture Treatment of PCC Pavement as Base for New AC Surface",
+      "event_year": 1992
+    },
+    {
+      "node_id": "55_B907",
+      "state": "Wisconsin",
+      "route": "2_43",
+      "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Partial depth patching of PCC pavements at joints",
+      "event_year": 1992
+    },
+    {
+      "node_id": "29_0607",
+      "state": "Missouri",
+      "route": "_",
+      "treatment_label": "Longitudinal Subdrains, Fracture Treatment of PCC Pavement as Base for New AC Surface",
+      "event_year": 1992
+    },
+    {
+      "node_id": "55_A903",
+      "state": "Wisconsin",
+      "route": "2_43",
+      "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Partial depth patching of PCC pavements at joints",
+      "event_year": 1992
+    },
+    {
+      "node_id": "55_B909",
+      "state": "Wisconsin",
+      "route": "2_43",
+      "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Partial depth patching of PCC pavements at joints",
+      "event_year": 1992
+    },
+    {
+      "node_id": "55_A902",
+      "state": "Wisconsin",
+      "route": "2_43",
+      "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Partial depth patching of PCC pavements at joints",
+      "event_year": 1992
+    },
+    {
+      "node_id": "55_A909",
+      "state": "Wisconsin",
+      "route": "2_43",
+      "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Partial depth patching of PCC pavements at joints",
+      "event_year": 1992
+    },
+    {
+      "node_id": "55_A907",
+      "state": "Wisconsin",
+      "route": "2_43",
+      "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Partial depth patching of PCC pavements at joints",
+      "event_year": 1992
+    },
+    {
+      "node_id": "29_0664",
+      "state": "Missouri",
+      "route": "_",
+      "treatment_label": "Asphalt Concrete Overlay, Fracture Treatment of PCC Pavement as Base for New AC Surface",
+      "event_year": 1992
+    },
+    {
+      "node_id": "39_9006",
+      "state": "Ohio",
+      "route": "2_71",
+      "treatment_label": "Grinding Surface, Full Depth Transverse Joint Repair Patch, Joint Load Transfer Restoration in PCC Pavements",
+      "event_year": 2003
+    },
+    {
+      "node_id": "39_4018",
+      "state": "Ohio",
+      "route": "2_675",
+      "treatment_label": "Hot-Mix Recycled Asphalt Concrete Overlay",
+      "event_year": 2003
+    },
+    {
+      "node_id": "55_B902",
+      "state": "Wisconsin",
+      "route": "2_43",
+      "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Partial depth patching of PCC pavements at joints",
+      "event_year": 1992
+    },
+    {
+      "node_id": "29_0663",
+      "state": "Missouri",
+      "route": "_",
+      "treatment_label": "Asphalt Concrete Overlay, Fracture Treatment of PCC Pavement as Base for New AC Surface",
+      "event_year": 1992
+    },
+    {
+      "node_id": "29_0604",
+      "state": "Missouri",
+      "route": "_",
+      "treatment_label": "Full Depth Transverse Joint Repair Patch",
+      "event_year": 1992
+    }
+  ],
+  "notes": {
+    "rutting_available_in_distress_tables": false,
+    "iri_available_in_distress_tables": false,
+    "faulting_available": true,
+    "faulting_only_for_jpcc": true,
+    "control_group_built": false,
+    "control_note": "This exploratory pass focuses on treated sections and graph neighbours; a matched control design would be a next step."
+  }
+}

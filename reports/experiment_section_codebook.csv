@@ -1,0 +1,188 @@
+code_type,code,description,additional_code,additional_code_type
+EXPERIMENT,1,Asphalt Concrete on Unbound Granular Base,G,GPS_SPS
+EXPERIMENT,1,"Strategic Study of Structural Factors for Flexible Pavements, new/reconstructed AC pavements",S,GPS_SPS
+EXPERIMENT,2,Asphalt Concrete on Bound Base,G,GPS_SPS
+EXPERIMENT,2,"Strategic Study of Structural Factors for Rigid Pavements, new/reconstructed JPCC pavements",S,GPS_SPS
+EXPERIMENT,3,Jointed Plain Concrete Pavement (JPCP),G,GPS_SPS
+EXPERIMENT,3,Preventive Maintenance of AC Pavement,S,GPS_SPS
+EXPERIMENT,4,Jointed Reinforced Concrete Pavement (JPCP),G,GPS_SPS
+EXPERIMENT,4,Preventive Maintenance of Jointed Concrete Pavement,S,GPS_SPS
+EXPERIMENT,5,AC Overlay of AC Pavement,S,GPS_SPS
+EXPERIMENT,5,Continuously Reinforced Concrete Pavement (CRCP),G,GPS_SPS
+EXPERIMENT,6,Rehabilitation of Jointed PCC Pavement,S,GPS_SPS
+EXPERIMENT,7,Bonded Concrete Overlay on Portland Cement Concrete Pavement,S,GPS_SPS
+EXPERIMENT,8,Study of Environmental Effects in the Absence of Heavy Loads,S,GPS_SPS
+EXPERIMENT,9,Unbonded PCC Overlay of PCC Pavement,G,GPS_SPS
+EXPERIMENT,10,Warm Mix Asphalt Overlay of Asphalt Pavement,S,GPS_SPS
+EXPERIMENT,6A,Existing AC Overlay on AC Pavement ,G,GPS_SPS
+EXPERIMENT,6B,"AC Overlay with Conventional Asphalt Cement on AC Pavement, No Milling",G,GPS_SPS
+EXPERIMENT,6C,"AC Overlay with Modified Asphalt Cement on AC Pavement, No Milling",G,GPS_SPS
+EXPERIMENT,6D,"Multiple AC Overlays with Conventional Asphalt Cement on AC Pavement, No Milling",G,GPS_SPS
+EXPERIMENT,6S,AC Overlay on AC Pavement with Milling and/or Fabric Pretreatment,G,GPS_SPS
+EXPERIMENT,7A,Existing AC Overlay on PCC Pavement,G,GPS_SPS
+EXPERIMENT,7B,"AC Overlay with Conventional Asphalt Cement on PCC Pavement, with CPR or No Pretreatment",G,GPS_SPS
+EXPERIMENT,7C,"AC Overlay with Modified Asphalt Cement on PCC Pavement, with CPR or No Pretreatment",G,GPS_SPS
+EXPERIMENT,7D,"Multiple AC Overlays with Conventional Asphalt Cement on PCC Pavement, with No Pretreatment",G,GPS_SPS
+EXPERIMENT,7F,"AC Overlay on PCC Pavement, with Slab Fracture Pretreatment",G,GPS_SPS
+EXPERIMENT,7R,Intensive Concrete Pavement Restoration of PCC without Overlay,G,GPS_SPS
+EXPERIMENT,7S,AC Overlay on PCC Pavement with Pretreatment,G,GPS_SPS
+EXPERIMENT,9A,Superpave Asphalt Binder Study (Project Level Designation),S,GPS_SPS
+EXPERIMENT,9C,"Superpave Asphalt Binder Study, AC Overlay on CRCP)",S,GPS_SPS
+EXPERIMENT,9J,"Superpave Asphalt Binder Study, AC Overlay on JCP)",S,GPS_SPS
+EXPERIMENT,9N,"Superpave Asphalt Binder Study, New AC Pavement Construction)",S,GPS_SPS
+EXPERIMENT,9O,"Superpave Asphalt Binder Study, AC Overlay on AC Pavement)",S,GPS_SPS
+EXPERIMENT,9P,Pilot Superpave Asphalt Binder Study (Project Level Designation),S,GPS_SPS
+GPS_SPS,G,General Pavement Studies,,
+GPS_SPS,S,Specific Pavement Studies,,
+MAINT_WORK,1,Crack Sealing,1,UNITS
+MAINT_WORK,2,Transverse Joint Sealing,1,UNITS
+MAINT_WORK,3,Lane-Shoulder Longitudinal Joint Sealing,1,UNITS
+MAINT_WORK,4,Full Depth Transverse Joint Repair Patch,2,UNITS
+MAINT_WORK,5,Full Depth Patching of PCC Pavement Other Than at Joint,2,UNITS
+MAINT_WORK,6,Partial Depth Patching of PCC Pavement Other Than at Joint,2,UNITS
+MAINT_WORK,7,PCC Slab Replacement,2,UNITS
+MAINT_WORK,8,PCC Shoulder Restoration,2,UNITS
+MAINT_WORK,9,PCC Shoulder Replacement,2,UNITS
+MAINT_WORK,10,AC Shoulder Restoration,2,UNITS
+MAINT_WORK,11,AC Shoulder Replacement,2,UNITS
+MAINT_WORK,12,Grinding Surface,2,UNITS
+MAINT_WORK,13,Grooving Surface,2,UNITS
+MAINT_WORK,14,Pressure Grout Subsealing,3,UNITS
+MAINT_WORK,15,Slab Jacking Depressions,4,UNITS
+MAINT_WORK,16,Asphalt Subsealing,3,UNITS
+MAINT_WORK,17,Spreading of Sand or Aggregate,2,UNITS
+MAINT_WORK,18,Reconstruction (Removal and Replacement),2,UNITS
+MAINT_WORK,19,Asphalt Concrete Overlay,2,UNITS
+MAINT_WORK,20,Portland Cement Concrete Overlay,2,UNITS
+MAINT_WORK,21,Mechanical Premix Patch (using motor grader and roller),2,UNITS
+MAINT_WORK,22,Manual Premix Spot Patch (hand spreading and compacting with roller),2,UNITS
+MAINT_WORK,23,Machine Premix Patch (placing premix with paver roller),2,UNITS
+MAINT_WORK,24,"Full Depth Patch of AC Pavement (removing damaged material, repairing supporting material, and repairing)",2,UNITS
+MAINT_WORK,25,"Patch Pot Holes - Hand Spread, Compacted with Truck",3,UNITS
+MAINT_WORK,26,Skin Patching (hand tools/hot pot to apply liquid asphalt and aggregate),2,UNITS
+MAINT_WORK,27,Strip Patching (using spreader and distributor to apply hot liquid asphalt and aggregate),2,UNITS
+MAINT_WORK,28,"Surface Treatment, Single Layer",2,UNITS
+MAINT_WORK,29,"Surface Treatment, Double Layer ",2,UNITS
+MAINT_WORK,30,"Surface Treatment, Three or More Layers",2,UNITS
+MAINT_WORK,31,Aggregate Seal Coat,2,UNITS
+MAINT_WORK,32,Sand Seal Coat,2,UNITS
+MAINT_WORK,33,Slurry Seal Coat,2,UNITS
+MAINT_WORK,34,Fog Seal Coat,2,UNITS
+MAINT_WORK,35,Prime Coat,2,UNITS
+MAINT_WORK,36,Tack Coat,2,UNITS
+MAINT_WORK,37,Dust Layering,2,UNITS
+MAINT_WORK,38,Longitudinal Subdrains,1,UNITS
+MAINT_WORK,39,Transverse Subdrainage,1,UNITS
+MAINT_WORK,40,Drainage Blanket,2,UNITS
+MAINT_WORK,41,Well System,,
+MAINT_WORK,42,Drainage Blankets with Longitudinal Drains,,
+MAINT_WORK,43,Hot-Mix Recycled Asphalt Concrete Overlay,2,UNITS
+MAINT_WORK,44,Cold-Mix Recycled Asphalt Concrete Overlay,2,UNITS
+MAINT_WORK,45,"Heater Scarification, Surface Recycled Asphalt Concrete",2,UNITS
+MAINT_WORK,46,Fracture Treatment of PCC Pavement as Base for New AC Surface,2,UNITS
+MAINT_WORK,47,Fracture Treatment of PCC Pavement as Base for New PCC Surface,2,UNITS
+MAINT_WORK,48,Recycled Portland Cement Concrete Overlay,2,UNITS
+MAINT_WORK,49,Pressure Relief Joints in PCC Pavements,1,UNITS
+MAINT_WORK,50,Joint Load Transfer Restoration in PCC Pavements,1,UNITS
+MAINT_WORK,51,Mill Off AC and Overlay with AC ,2,UNITS
+MAINT_WORK,52,Mill Off AC and Overlay with PCC,2,UNITS
+MAINT_WORK,53,Other,,
+MAINT_WORK,54,Partial depth patching of PCC pavements at joints,2,UNITS
+MAINT_WORK,55,Mill Existing Pavement and Overlay with Hot-Mix Recycled AC,2,UNITS
+MAINT_WORK,56,Mill Existing Pavement and Overlay with Cold-Mix Recycled AC,2,UNITS
+MAINT_WORK,57,Saw and Seal,1,UNITS
+MAINT_WORK,58,Mill Existing Pavement and Overlay with Warm Mix AC,2,UNITS
+MAINT_WORK,59,Warm Mix AC Overlay,2,UNITS
+MAINT_WORK,60,Warm Mix AC Overlay with RAP and/or RAS,2,UNITS
+MAINT_WORK,61,Mill Existing Pavement and Overlay with Warm Mix Recycled AC,2,UNITS
+MAINT_WORK,99,Forensic Study - ,,
+PAVEMENT_FAMILY,ACATB,Asphalt concrete over asphalt treated base/subgrade,,
+PAVEMENT_FAMILY,ACPCC,Asphalt concrete over Portland cement concrete,,
+PAVEMENT_FAMILY,ACTB,Asphalt concrete over cement/lime treated base/subgrade,,
+PAVEMENT_FAMILY,ACUB,Asphalt concrete over unbound base/subgrade,,
+PAVEMENT_FAMILY,CRCP,Continuously reinforced concrete pavement,,
+PAVEMENT_FAMILY,JPCTB,Jointed plain concrete over treated base/subgrade,,
+PAVEMENT_FAMILY,JPCUB,Jointed plain concrete over unbound base/subgrade,,
+PAVEMENT_FAMILY,JRCP,Jointed reinforced concrete pavement,,
+PAVEMENT_FAMILY,PCPCC,Portland cement concrete layer over Portland cement concrete,,
+STATE_PROVINCE,1,Alabama,,
+STATE_PROVINCE,2,Alaska,,
+STATE_PROVINCE,4,Arizona,,
+STATE_PROVINCE,5,Arkansas,,
+STATE_PROVINCE,6,California,,
+STATE_PROVINCE,8,Colorado,,
+STATE_PROVINCE,9,Connecticut,,
+STATE_PROVINCE,10,Delaware,,
+STATE_PROVINCE,11,District of Columbia,,
+STATE_PROVINCE,12,Florida,,
+STATE_PROVINCE,13,Georgia,,
+STATE_PROVINCE,15,Hawaii,,
+STATE_PROVINCE,16,Idaho,,
+STATE_PROVINCE,17,Illinois,,
+STATE_PROVINCE,18,Indiana,,
+STATE_PROVINCE,19,Iowa,,
+STATE_PROVINCE,20,Kansas,,
+STATE_PROVINCE,21,Kentucky,,
+STATE_PROVINCE,22,Louisiana,,
+STATE_PROVINCE,23,Maine,,
+STATE_PROVINCE,24,Maryland,,
+STATE_PROVINCE,25,Massachusetts,,
+STATE_PROVINCE,26,Michigan,,
+STATE_PROVINCE,27,Minnesota,,
+STATE_PROVINCE,28,Mississippi,,
+STATE_PROVINCE,29,Missouri,,
+STATE_PROVINCE,30,Montana,,
+STATE_PROVINCE,31,Nebraska,,
+STATE_PROVINCE,32,Nevada,,
+STATE_PROVINCE,33,New Hampshire,,
+STATE_PROVINCE,34,New Jersey,,
+STATE_PROVINCE,35,New Mexico,,
+STATE_PROVINCE,36,New York,,
+STATE_PROVINCE,37,North Carolina,,
+STATE_PROVINCE,38,North Dakota,,
+STATE_PROVINCE,39,Ohio,,
+STATE_PROVINCE,40,Oklahoma,,
+STATE_PROVINCE,41,Oregon,,
+STATE_PROVINCE,42,Pennsylvania,,
+STATE_PROVINCE,44,Rhode Island,,
+STATE_PROVINCE,45,South Carolina,,
+STATE_PROVINCE,46,South Dakota,,
+STATE_PROVINCE,47,Tennessee,,
+STATE_PROVINCE,48,Texas,,
+STATE_PROVINCE,49,Utah,,
+STATE_PROVINCE,50,Vermont,,
+STATE_PROVINCE,51,Virginia,,
+STATE_PROVINCE,53,Washington,,
+STATE_PROVINCE,54,West Virginia,,
+STATE_PROVINCE,55,Wisconsin,,
+STATE_PROVINCE,56,Wyoming,,
+STATE_PROVINCE,60,American Samoa,,
+STATE_PROVINCE,66,Guam,,
+STATE_PROVINCE,67,Belgium,,
+STATE_PROVINCE,68,Austria,,
+STATE_PROVINCE,69,France,,
+STATE_PROVINCE,70,Brazil,,
+STATE_PROVINCE,71,Italy,,
+STATE_PROVINCE,72,Puerto Rico,,
+STATE_PROVINCE,73,Chile,,
+STATE_PROVINCE,78,Virgin Islands,,
+STATE_PROVINCE,81,Alberta,,
+STATE_PROVINCE,82,British Columbia,,
+STATE_PROVINCE,83,Manitoba,,
+STATE_PROVINCE,84,New Brunswick,,
+STATE_PROVINCE,85,Newfoundland,,
+STATE_PROVINCE,86,Nova Scotia,,
+STATE_PROVINCE,87,Ontario,,
+STATE_PROVINCE,88,Prince Edward Island,,
+STATE_PROVINCE,89,Quebec,,
+STATE_PROVINCE,90,Saskatchewan,,
+STATE_PROVINCE,91,Australia,,
+STATE_PROVINCE,92,Denmark,,
+STATE_PROVINCE,93,Finland,,
+STATE_PROVINCE,94,Japan,,
+STATE_PROVINCE,95,Netherlands,,
+STATE_PROVINCE,96,Norway,,
+STATE_PROVINCE,97,Sweden,,
+STATE_PROVINCE,98,United Kingdom,,
+STATUS,O,Out-of-study,,
+STATUS,R,Rejected,,

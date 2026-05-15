@@ -1,0 +1,244 @@
+{
+  "question_alignment": {
+    "graph_representation": true,
+    "projects_mapped_to_nodes": true,
+    "interdependencies_encoded": [
+      "corridor",
+      "spatial_diversion",
+      "same_state_diversion",
+      "simultaneous_project_conflicts"
+    ],
+    "targets": [
+      "delta_vht_proxy",
+      "connectivity_loss_pct",
+      "disconnected_od_pct",
+      "disruption_score"
+    ],
+    "scenario_count": 1500
+  },
+  "network": {
+    "graph_variant": "full_refined",
+    "nodes": 2426,
+    "edges": 11038,
+    "od_pairs": 120,
+    "base_vht_proxy": 9548897608.824116,
+    "base_total_asset": 161075748755.328,
+    "base_largest_component_asset": 154198106994.42,
+    "total_od_weight": 138539648.9249389,
+    "num_od_pairs": 120,
+    "num_scenarios": 1500
+  },
+  "model_metrics": {
+    "targets": {
+      "delta_vht_proxy": {
+        "gcn": {
+          "train": {
+            "rmse": 1033562386.3745576,
+            "mae": 478993280.0,
+            "r2": 0.6109998226165771
+          },
+          "val": {
+            "rmse": 986852847.6770442,
+            "mae": 468478368.0,
+            "r2": 0.679195761680603
+          },
+          "test": {
+            "rmse": 619163734.3703359,
+            "mae": 390840576.0,
+            "r2": 0.777199387550354
+          }
+        },
+        "ridge": {
+          "train": {
+            "rmse": 1272709902.9221072,
+            "mae": 663423552.0,
+            "r2": 0.41015857458114624
+          },
+          "val": {
+            "rmse": 1226180458.475922,
+            "mae": 659721024.0,
+            "r2": 0.5047276616096497
+          },
+          "test": {
+            "rmse": 841537851.8894632,
+            "mae": 549572032.0,
+            "r2": 0.5884215831756592
+          }
+        }
+      },
+      "connectivity_loss_pct": {
+        "gcn": {
+          "train": {
+            "rmse": 0.0008285431544145804,
+            "mae": 0.0002894336066674441,
+            "r2": 0.8573070764541626
+          },
+          "val": {
+            "rmse": 0.001147670568970279,
+            "mae": 0.00034891709219664335,
+            "r2": 0.7357817888259888
+          },
+          "test": {
+            "rmse": 0.0003496195074229589,
+            "mae": 0.00021424872102215886,
+            "r2": 0.9545183181762695
+          }
+        },
+        "ridge": {
+          "train": {
+            "rmse": 0.0007727347341623592,
+            "mae": 0.00022331821674015373,
+            "r2": 0.8758825063705444
+          },
+          "val": {
+            "rmse": 0.001070753897769686,
+            "mae": 0.00025290821213275194,
+            "r2": 0.7700107097625732
+          },
+          "test": {
+            "rmse": 0.0002880280473810071,
+            "mae": 0.00015906625776551664,
+            "r2": 0.9691315293312073
+          }
+        }
+      },
+      "disconnected_od_pct": {
+        "gcn": {
+          "train": {
+            "rmse": 0.025046089136014416,
+            "mae": 0.011931105516850948,
+            "r2": 0.5371136665344238
+          },
+          "val": {
+            "rmse": 0.030606336266383115,
+            "mae": 0.011838684789836407,
+            "r2": 0.4814037084579468
+          },
+          "test": {
+            "rmse": 0.016753263571638317,
+            "mae": 0.009669508785009384,
+            "r2": 0.6654391288757324
+          }
+        },
+        "ridge": {
+          "train": {
+            "rmse": 0.02966779800947279,
+            "mae": 0.016256367787718773,
+            "r2": 0.3505209684371948
+          },
+          "val": {
+            "rmse": 0.03425169920121614,
+            "mae": 0.016462555155158043,
+            "r2": 0.3505123257637024
+          },
+          "test": {
+            "rmse": 0.021154063091953317,
+            "mae": 0.013617074117064476,
+            "r2": 0.4665865898132324
+          }
+        }
+      },
+      "disruption_score": {
+        "gcn": {
+          "train": {
+            "rmse": 1300113838.4512212,
+            "mae": 532371936.0,
+            "r2": 0.6254268884658813
+          },
+          "val": {
+            "rmse": 1226718302.3264143,
+            "mae": 527089376.0,
+            "r2": 0.6893904805183411
+          },
+          "test": {
+            "rmse": 673423955.8766781,
+            "mae": 422583456.0,
+            "r2": 0.8281235694885254
+          }
+        },
+        "ridge": {
+          "train": {
+            "rmse": 1624392043.47374,
+            "mae": 766768448.0,
+            "r2": 0.415269672870636
+          },
+          "val": {
+            "rmse": 1540594126.9039655,
+            "mae": 771216064.0,
+            "r2": 0.51010662317276
+          },
+          "test": {
+            "rmse": 995711980.3782696,
+            "mae": 624229056.0,
+            "r2": 0.6242432594299316
+          }
+        }
+      }
+    }
+  },
+  "feature_names": [
+    "num_closed_nodes",
+    "closed_demand",
+    "closed_asset",
+    "closed_project_load",
+    "closed_lane_exposure",
+    "closed_speed_exposure",
+    "closed_total_degree",
+    "first_hop_demand",
+    "first_hop_asset",
+    "first_hop_degree",
+    "second_hop_demand",
+    "second_hop_asset",
+    "second_hop_degree",
+    "first_hop_spatial",
+    "first_hop_diversion",
+    "route_concentration",
+    "closed_tb_degree_days_over_10c_yr",
+    "firsthop_tb_degree_days_over_10c_yr",
+    "closed_tb_coldest_air_temp",
+    "firsthop_tb_coldest_air_temp",
+    "closed_tb_high_temp_7days",
+    "firsthop_tb_high_temp_7days",
+    "closed_tb_max_avg_temp_high_7days",
+    "firsthop_tb_max_avg_temp_high_7days",
+    "closed_tb_max_temp_high_7days",
+    "firsthop_tb_max_temp_high_7days",
+    "closed_tb_min_surface_50_temp",
+    "firsthop_tb_min_surface_50_temp",
+    "closed_tb_min_surface_98_temp",
+    "firsthop_tb_min_surface_98_temp",
+    "closed_tb_stddev_high_temp_7days",
+    "firsthop_tb_stddev_high_temp_7days",
+    "closed_tb_stddev_coldest_air_temp",
+    "firsthop_tb_stddev_coldest_air_temp",
+    "closed_hu_rel_hum_avg_avg",
+    "firsthop_hu_rel_hum_avg_avg",
+    "closed_pr_precipitation",
+    "firsthop_pr_precipitation",
+    "closed_pr_evaporation",
+    "firsthop_pr_evaporation",
+    "closed_pr_pr_days",
+    "firsthop_pr_pr_days",
+    "closed_wi_wi_velocity_avg",
+    "firsthop_wi_wi_velocity_avg",
+    "closed_so_cloud_cover_avg",
+    "firsthop_so_cloud_cover_avg",
+    "closed_so_shortwave_surface_avg",
+    "firsthop_so_shortwave_surface_avg",
+    "closed_ty_temp_avg",
+    "firsthop_ty_temp_avg",
+    "closed_ty_temp_mean_avg",
+    "firsthop_ty_temp_mean_avg",
+    "closed_ty_freeze_index",
+    "firsthop_ty_freeze_index",
+    "closed_ty_freeze_thaw",
+    "firsthop_ty_freeze_thaw"
+  ],
+  "outputs": {
+    "network_edges": "/Users/gregoiredambre/Library/CloudStorage/OneDrive-UniversityofCambridge/Research/Code/graph_data/network_edges_research_full_refined.csv",
+    "od_pairs": "/Users/gregoiredambre/Library/CloudStorage/OneDrive-UniversityofCambridge/Research/Code/graph_data/network_od_pairs_full_refined.csv",
+    "scenarios": "/Users/gregoiredambre/Library/CloudStorage/OneDrive-UniversityofCambridge/Research/Code/graph_data/network_scenarios_full_refined.csv",
+    "predictions": "/Users/gregoiredambre/Library/CloudStorage/OneDrive-UniversityofCambridge/Research/Code/graph_data/network_scenario_predictions_full_refined.csv",
+    "node_impacts": "/Users/gregoiredambre/Library/CloudStorage/OneDrive-UniversityofCambridge/Research/Code/graph_data/network_node_impacts_full_refined.csv"
+  }
+}

@@ -1,0 +1,5 @@
+data_family,finest_available_time_unit,regularity,key_date_fields,years_covered,months_covered,feasibility_for_monthly_modelling,recommendation
+distress,dated survey observations,irregular dated events,SURVEY_DATE; SURVEY_WIDTH,1988-2024,379,no,No: distress surveys are irregular and sparse; monthly panel would be mostly missing.
+traffic,year,regular annual,YEAR,1937-2024,0,no,"No: traffic inputs are annual trend records with YEAR only, no monthly support."
+maintenance,dated events,irregular dated events,CONSTRUCTION_DATE; TRAFFIC_OPEN_DATE; YEAR_WIDENED,1985-2014,70,partial,"Partial: exact dated events exist for some projects, so monthly status can be approximated, but it would rely on construction/opening intervals rather than true monthly maintenance state observations."
+climate,month,regular monthly,YEAR; MONTH,1980-2025,552,yes,"Yes for climate alone, but monthly climate should likely be aggregated unless other data families also support monthly panels."
