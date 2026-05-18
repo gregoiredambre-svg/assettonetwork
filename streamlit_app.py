@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import networkx as nx
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -12,6 +13,7 @@ import streamlit as st
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "graph_data"
 REPORT_DIR = ROOT / "reports"
+RAW_DATA_DIR = ROOT / "Research Data"
 
 st.set_page_config(
     page_title="From Asset to Network: Graph-Based Road Maintenance Explorer",
@@ -110,6 +112,49 @@ TREATMENT_LABELS = {
     "unknown": "Unknown / mixed",
 }
 
+CORE_TERMS_MARKDOWN = """
+**Useful vocabulary**
+
+- **LTPP**: Long-Term Pavement Performance programme. This is the source of the monitored road sections.
+- **MERRA**: a gridded climate dataset used to attach temperature, precipitation, humidity, wind, and solar exposure to each section.
+- **RF**: Random Forest, a strong non-linear baseline model that predicts from section-level features only.
+- **GCN**: Graph Convolutional Network, a graph model that lets neighbouring sections share information.
+- **R²**: coefficient of determination. Closer to `1` means better predictive fit; around `0` means weak explanatory power.
+- **OD pair**: an **origin-destination pair**, meaning a trip from one important road section to another.
+- **ESAL / GESAL**: traffic loading indicators summarising how much heavy-vehicle damage the pavement is expected to carry.
+- **AADTT**: Average Annual Daily Truck Traffic.
+"""
+
+YEARLY_SERIES_LABELS = {
+    "temp_year_temp_avg": "Temperature average",
+    "temp_year_temp_mean_avg": "Mean air temperature",
+    "humid_rel_hum_avg_avg": "Relative humidity",
+    "precip_precipitation": "Precipitation",
+    "precip_evaporation": "Evaporation",
+    "precip_precip_days": "Precipitation days",
+    "wind_wind_velocity_avg": "Wind velocity",
+    "solar_cloud_cover_avg": "Cloud cover",
+    "solar_shortwave_surface_avg": "Shortwave solar exposure",
+    "ANNUAL_ESAL_TREND": "Annual ESAL",
+    "ANNUAL_GESAL_TREND": "Annual GESAL",
+    "AADTT_ALL_TRUCKS_TREND": "AADTT all trucks",
+    "ANNUAL_TRUCK_VOLUME_TREND": "Annual truck volume",
+    "CMLTV_VOL_VEH_CLASS_9_TREND": "Class 9 cumulative volume",
+}
+
+DISTRESS_LABELS = {
+    "HPMS16_CRACKING_PERCENT_AC": "HPMS cracking (%)",
+    "GATOR_CRACK_A": "Alligator cracking area",
+    "LONG_CRACK_WP_L": "Longitudinal cracking in wheel path",
+    "LONG_CRACK_NWP_L": "Longitudinal cracking outside wheel path",
+    "LONG_CRACK_WP_SEAL_L": "Sealed longitudinal cracking in wheel path",
+    "LONG_CRACK_NWP_SEAL_L": "Sealed longitudinal cracking outside wheel path",
+    "TRANS_CRACK_L": "Transverse cracking length",
+    "TRANS_CRACK_SEAL_L": "Sealed transverse cracking length",
+    "PATCH_A": "Patched area",
+    "POTHOLES_A": "Pothole area",
+}
+
 
 def tagged_graph_path(stem: str, variant: str, suffix: str) -> Path:
     if variant == "full_refined":
@@ -149,6 +194,40 @@ def safe_float(value: object) -> float | None:
         return None
 
 
+def normalize_shrp_id(value: object) -> str | None:
+    if pd.isna(value):
+        return None
+    text = str(value).strip()
+    if not text or text.lower() == "nan":
+        return None
+    try:
+        numeric = float(text)
+        if numeric.is_integer():
+            return str(int(numeric))
+    except Exception:
+        pass
+    stripped = text.lstrip("0")
+    return stripped or "0"
+
+
+def build_node_id_join_from_parts(state_code: object, shrp_id: object) -> str | None:
+    state = str(state_code).strip() if not pd.isna(state_code) else ""
+    shrp = normalize_shrp_id(shrp_id)
+    if not state or shrp is None:
+        return None
+    return f"{state}_{shrp}"
+
+
+def build_node_id_join_from_node_id(node_id: object) -> str | None:
+    if pd.isna(node_id):
+        return None
+    text = str(node_id).strip()
+    if "_" not in text:
+        return None
+    state_code, shrp_id = text.split("_", 1)
+    return build_node_id_join_from_parts(state_code, shrp_id)
+
+
 def node_label(row: pd.Series) -> str:
     node_id = str(row.get("node_id", ""))
     state_name = STATE_NAMES.get(str(row.get("state_code", "")), f"State {row.get('state_code', '')}")
@@ -162,9 +241,14 @@ def node_label(row: pd.Series) -> str:
 @st.cache_data
 def load_nodes() -> pd.DataFrame:
     nodes = pd.read_csv(DATA_DIR / "nodes.csv", low_memory=False)
-    nodes["node_id"] = nodes["node_id"].astype(str)
-    nodes["state_code"] = nodes["state_code"].astype(str)
-    nodes["state_name"] = nodes["state_code"].map(lambda code: STATE_NAMES.get(str(code), f"State {code}"))
+    nodes = nodes.assign(
+        node_id=nodes["node_id"].astype(str),
+        state_code=nodes["state_code"].astype(str),
+    ).copy()
+    nodes = nodes.assign(
+        state_name=nodes["state_code"].map(lambda code: STATE_NAMES.get(str(code), f"State {code}")),
+        node_id_join=nodes["node_id"].map(build_node_id_join_from_node_id),
+    ).copy()
     return nodes.dropna(subset=["latitude", "longitude"]).copy()
 
 
@@ -196,6 +280,111 @@ def load_report_csv(name: str) -> pd.DataFrame:
 def load_report_json(name: str) -> dict:
     with open(REPORT_DIR / name, "r", encoding="utf-8") as fh:
         return json.load(fh)
+
+
+@st.cache_data
+def load_inspector_yearly_panel() -> pd.DataFrame:
+    nodes = load_nodes()[["node_id", "node_id_join", "state_code", "state_name", "route_key", "functional_class", "merra_id"]].copy()
+
+    traffic_specs = {
+        "TRF_TREND": ["ANNUAL_ESAL_TREND", "ANNUAL_GESAL_TREND"],
+        "TRF_TREND_1": ["AADTT_ALL_TRUCKS_TREND", "ANNUAL_TRUCK_VOLUME_TREND"],
+        "TRF_TREND_2": ["CMLTV_VOL_VEH_CLASS_9_TREND"],
+    }
+    traffic_path = RAW_DATA_DIR / "Annual Traffic Inputs Over Time.xlsx"
+    traffic_parts: list[pd.DataFrame] = []
+    for sheet_name, value_cols in traffic_specs.items():
+        raw = pd.read_excel(traffic_path, sheet_name=sheet_name, usecols=["STATE_CODE", "SHRP_ID", "YEAR", *value_cols])
+        raw["node_id_join"] = raw.apply(lambda row: build_node_id_join_from_parts(row["STATE_CODE"], row["SHRP_ID"]), axis=1)
+        raw["YEAR"] = pd.to_numeric(raw["YEAR"], errors="coerce").astype("Int64")
+        for col in value_cols:
+            raw[col] = pd.to_numeric(raw[col], errors="coerce")
+        traffic_parts.append(raw[["node_id_join", "YEAR", *value_cols]].groupby(["node_id_join", "YEAR"], as_index=False).mean())
+
+    traffic = traffic_parts[0]
+    for part in traffic_parts[1:]:
+        traffic = traffic.merge(part, on=["node_id_join", "YEAR"], how="outer")
+
+    climate_root = RAW_DATA_DIR / "MERRA - Temperature, Humidity, Precipitation, Wind, Solar"
+    grid = pd.read_excel(climate_root / "GENERAL" / "MERRA_GRID_SECTION.xlsx", sheet_name="MERRA_GRID_SECTION")
+    grid["node_id_join"] = grid.apply(lambda row: build_node_id_join_from_parts(row.get("STATE_CODE"), row.get("SHRP_ID")), axis=1)
+    grid = grid.rename(columns={"MERRA_ID": "merra_id"})
+    grid["merra_id"] = grid["merra_id"].astype(str).str.strip()
+    grid = grid[["node_id_join", "merra_id"]].drop_duplicates(subset=["node_id_join"])
+
+    climate_specs = [
+        ("HUMIDITY/MERRA_HUMID_YEAR.xlsx", "MERRA_HUMID_YEAR", ["REL_HUM_AVG_AVG"], "humid_"),
+        ("PRECIPITATION/MERRA_PRECIP_YEAR.xlsx", "MERRA_PRECIP_YEAR", ["PRECIPITATION", "EVAPORATION", "PRECIP_DAYS"], "precip_"),
+        ("WIND/MERRA_WIND_YEAR.xlsx", "MERRA_WIND_YEAR", ["WIND_VELOCITY_AVG"], "wind_"),
+        ("SOLAR/MERRA_SOLAR_YEAR.xlsx", "MERRA_SOLAR_YEAR", ["CLOUD_COVER_AVG", "SHORTWAVE_SURFACE_AVG"], "solar_"),
+        ("TEMPERATURE/MERRA_TEMP_YEAR.xlsx", "MERRA_TEMP_YEAR", ["TEMP_AVG", "TEMP_MEAN_AVG", "FREEZE_INDEX", "FREEZE_THAW"], "temp_year_"),
+    ]
+    climate_frames: list[pd.DataFrame] = []
+    for rel_path, sheet_name, value_cols, prefix in climate_specs:
+        raw = pd.read_excel(climate_root / rel_path, sheet_name=sheet_name)
+        raw = raw.rename(columns={"MERRA_ID": "merra_id"})
+        raw["merra_id"] = raw["merra_id"].astype(str).str.strip()
+        raw["YEAR"] = pd.to_numeric(raw["YEAR"], errors="coerce").astype("Int64")
+        for col in value_cols:
+            raw[col] = pd.to_numeric(raw[col], errors="coerce")
+        renamed = raw[["merra_id", "YEAR", *value_cols]].groupby(["merra_id", "YEAR"], as_index=False).mean()
+        renamed = renamed.rename(columns={col: f"{prefix}{col.lower()}" for col in value_cols})
+        climate_frames.append(renamed)
+
+    annual_climate = climate_frames[0]
+    for part in climate_frames[1:]:
+        annual_climate = annual_climate.merge(part, on=["merra_id", "YEAR"], how="outer")
+    annual_climate = grid.merge(annual_climate, on="merra_id", how="left")
+
+    yearly = traffic.merge(annual_climate, on=["node_id_join", "YEAR"], how="outer")
+    panel = nodes.merge(yearly, on="node_id_join", how="left")
+    panel["YEAR"] = pd.to_numeric(panel["YEAR"], errors="coerce").astype("Int64")
+    return panel
+
+
+@st.cache_data
+def load_inspector_distress() -> pd.DataFrame:
+    distress_path = RAW_DATA_DIR / "Analysis Ready Distress.xlsx"
+    specs = {
+        "ANALYSIS_DIS_AC": [
+            "HPMS16_CRACKING_PERCENT_AC",
+            "GATOR_CRACK_A",
+            "LONG_CRACK_WP_L",
+            "LONG_CRACK_NWP_L",
+            "LONG_CRACK_WP_SEAL_L",
+            "LONG_CRACK_NWP_SEAL_L",
+            "TRANS_CRACK_L",
+            "TRANS_CRACK_SEAL_L",
+            "PATCH_A",
+            "POTHOLES_A",
+        ],
+        "ANALYSIS_DIS_JPCC": ["TRANS_CRACK_L", "TRANS_CRACK_SEAL_L"],
+        "ANALYSIS_DIS_CRCP": ["TRANS_CRACK_L"],
+    }
+    pieces: list[pd.DataFrame] = []
+    for sheet_name, metric_cols in specs.items():
+        raw = pd.read_excel(
+            distress_path,
+            sheet_name=sheet_name,
+            usecols=["STATE_CODE", "SHRP_ID", "SURVEY_DATE", "CONSTRUCTION_NO", *metric_cols],
+        )
+        raw["node_id"] = raw.apply(lambda row: f"{str(row['STATE_CODE']).strip()}_{str(row['SHRP_ID']).strip()}", axis=1)
+        raw["SURVEY_DATE"] = pd.to_datetime(raw["SURVEY_DATE"], errors="coerce")
+        raw["YEAR"] = raw["SURVEY_DATE"].dt.year.astype("Int64")
+        raw["distress_source"] = sheet_name.replace("ANALYSIS_DIS_", "")
+        for col in metric_cols:
+            raw[col] = pd.to_numeric(raw[col], errors="coerce")
+        pieces.append(raw)
+    return pd.concat(pieces, ignore_index=True)
+
+
+@st.cache_data
+def load_inspector_treatment_events() -> pd.DataFrame:
+    events = pd.read_csv(REPORT_DIR / "experiment_section_event_table.csv", low_memory=False)
+    events["node_id"] = events["node_id"].astype(str)
+    events["event_start_date"] = pd.to_datetime(events["event_start_date"], errors="coerce")
+    events["event_end_date"] = pd.to_datetime(events["event_end_date"], errors="coerce")
+    return events
 
 
 def add_project_counts(nodes: pd.DataFrame, projects: pd.DataFrame) -> pd.DataFrame:
@@ -238,7 +427,13 @@ def build_section_lookup(nodes: pd.DataFrame) -> dict[str, str]:
     return {row["node_id"]: node_label(row) for _, row in temp.iterrows()}
 
 
-def draw_node_map(nodes: pd.DataFrame, title: str, color_col: str | None = None, highlight_nodes: list[str] | None = None) -> go.Figure:
+def draw_node_map(
+    nodes: pd.DataFrame,
+    title: str,
+    color_col: str | None = None,
+    highlight_nodes: list[str] | None = None,
+    height: int = 650,
+) -> go.Figure:
     frame = nodes.copy()
     frame["highlight"] = frame["node_id"].isin(highlight_nodes or [])
     if color_col and color_col in frame.columns:
@@ -248,6 +443,7 @@ def draw_node_map(nodes: pd.DataFrame, title: str, color_col: str | None = None,
             lon="longitude",
             color=color_col,
             hover_name="node_id",
+            custom_data=["node_id"],
             hover_data={"state_name": True, "route_key": True, "functional_class": True, "project_count": True},
             title=title,
             opacity=0.75,
@@ -258,6 +454,7 @@ def draw_node_map(nodes: pd.DataFrame, title: str, color_col: str | None = None,
             lat="latitude",
             lon="longitude",
             hover_name="node_id",
+            custom_data=["node_id"],
             hover_data={"state_name": True, "route_key": True, "functional_class": True, "project_count": True},
             title=title,
             opacity=0.75,
@@ -287,7 +484,7 @@ def draw_node_map(nodes: pd.DataFrame, title: str, color_col: str | None = None,
         coastlinecolor="rgba(0,0,0,0)",
         fitbounds="locations" if len(frame) < len(nodes) else False,
     )
-    fig.update_layout(height=500, margin=dict(l=0, r=0, t=50, b=0))
+    fig.update_layout(height=height, margin=dict(l=0, r=0, t=50, b=0))
     return fig
 
 
@@ -299,11 +496,19 @@ def assign_component_clusters(nodes: pd.DataFrame, edges: pd.DataFrame) -> pd.Da
         graph.add_edges_from(edges[["source", "target"]].astype(str).itertuples(index=False, name=None))
 
     component_map: dict[str, int] = {}
-    for idx, comp in enumerate(sorted(nx.connected_components(graph), key=len, reverse=True), start=1):
+    component_sizes: dict[int, int] = {}
+    ordered_components = sorted(nx.connected_components(graph), key=len, reverse=True)
+    for idx, comp in enumerate(ordered_components, start=1):
+        component_sizes[idx] = len(comp)
         for node_id in comp:
             component_map[str(node_id)] = idx
     frame["cluster_id"] = frame["node_id"].astype(str).map(component_map).fillna(-1).astype(int)
+    frame["cluster_size"] = frame["cluster_id"].map(component_sizes).fillna(1).astype(int)
     frame["cluster_label"] = frame["cluster_id"].map(lambda value: f"Cluster {value}" if value > 0 else "Isolated")
+    cluster_order = [f"Cluster {idx}" for idx in sorted(component_sizes, key=lambda idx: component_sizes[idx], reverse=True)]
+    if (frame["cluster_id"] <= 0).any():
+        cluster_order.append("Isolated")
+    frame["cluster_label"] = pd.Categorical(frame["cluster_label"], categories=cluster_order, ordered=True)
     return frame
 
 
@@ -314,6 +519,7 @@ def draw_network_web(
     focus_node: str | None = None,
     max_edges: int = 1200,
     color_by_cluster: bool = False,
+    height: int = 700,
 ) -> go.Figure:
     frame_nodes = nodes.copy()
     edge_frame = edges.head(max_edges).copy()
@@ -344,11 +550,13 @@ def draw_network_web(
         )
 
     if color_by_cluster and "cluster_label" in frame_nodes.columns:
+        cluster_order = list(frame_nodes["cluster_label"].cat.categories)
         cluster_fig = px.scatter(
             frame_nodes,
             x="longitude",
             y="latitude",
             color="cluster_label",
+            category_orders={"cluster_label": cluster_order},
             hover_name="node_id",
             hover_data={"state_name": True, "route_key": True, "functional_class": True, "cluster_label": False},
             color_discrete_sequence=px.colors.qualitative.Alphabet,
@@ -390,7 +598,7 @@ def draw_network_web(
         title=title,
         xaxis_title="Longitude",
         yaxis_title="Latitude",
-        height=550,
+        height=height,
         margin=dict(l=10, r=10, t=50, b=10),
         legend_title_text="Relationship / cluster",
         plot_bgcolor="white",
@@ -405,13 +613,15 @@ def draw_network_web(
     return fig
 
 
-def draw_cluster_map(nodes: pd.DataFrame, edges: pd.DataFrame, title: str) -> go.Figure:
+def draw_cluster_map(nodes: pd.DataFrame, edges: pd.DataFrame, title: str, height: int = 650) -> go.Figure:
     frame = assign_component_clusters(nodes, edges)
+    cluster_order = list(frame["cluster_label"].cat.categories)
     fig = px.scatter_geo(
         frame,
         lat="latitude",
         lon="longitude",
         color="cluster_label",
+        category_orders={"cluster_label": cluster_order},
         hover_name="node_id",
         hover_data={"state_name": True, "route_key": True, "functional_class": True},
         title=title,
@@ -429,7 +639,7 @@ def draw_cluster_map(nodes: pd.DataFrame, edges: pd.DataFrame, title: str) -> go
         subunitcolor="white",
         coastlinecolor="rgba(0,0,0,0)",
     )
-    fig.update_layout(height=500, margin=dict(l=0, r=0, t=50, b=0), legend_title_text="Local cluster")
+    fig.update_layout(height=height, margin=dict(l=0, r=0, t=50, b=0), legend_title_text="Local cluster")
     return fig
 
 
@@ -491,8 +701,188 @@ def build_temporal_result_table(treatment_ablation: pd.DataFrame) -> pd.DataFram
     ]
 
 
+def available_yearly_series(frame: pd.DataFrame) -> list[str]:
+    candidates = [
+        "temp_year_temp_avg",
+        "temp_year_temp_mean_avg",
+        "humid_rel_hum_avg_avg",
+        "precip_precipitation",
+        "precip_evaporation",
+        "precip_precip_days",
+        "wind_wind_velocity_avg",
+        "solar_cloud_cover_avg",
+        "solar_shortwave_surface_avg",
+        "ANNUAL_ESAL_TREND",
+        "ANNUAL_GESAL_TREND",
+        "AADTT_ALL_TRUCKS_TREND",
+        "ANNUAL_TRUCK_VOLUME_TREND",
+        "CMLTV_VOL_VEH_CLASS_9_TREND",
+    ]
+    return [col for col in candidates if col in frame.columns]
+
+
+def normalize_yearly_series(frame: pd.DataFrame, value_cols: list[str], mode: str) -> pd.DataFrame:
+    chart_df = frame[["YEAR", *value_cols]].dropna(subset=["YEAR"]).copy()
+    chart_df["YEAR"] = chart_df["YEAR"].astype(int)
+    out = chart_df.copy()
+    for col in value_cols:
+        values = pd.to_numeric(out[col], errors="coerce")
+        if values.notna().sum() < 2:
+            out[col] = np.nan
+            continue
+        if mode == "Z-score":
+            mu = values.mean()
+            sd = values.std(ddof=0)
+            out[col] = (values - mu) / (sd if sd and sd > 0 else 1.0)
+        elif mode == "Min-Max":
+            lo, hi = values.min(), values.max()
+            out[col] = (values - lo) / ((hi - lo) if hi != lo else 1.0)
+        else:
+            med = values.median()
+            q1, q3 = values.quantile(0.25), values.quantile(0.75)
+            iqr = q3 - q1
+            out[col] = (values - med) / (iqr if iqr and iqr > 0 else 1.0)
+    long = out.melt(id_vars="YEAR", value_vars=value_cols, var_name="variable", value_name="normalized_value").dropna()
+    long["Series"] = long["variable"].map(lambda col: YEARLY_SERIES_LABELS.get(col, col))
+    return long
+
+
+def render_yearly_inspector(selected_node: str) -> None:
+    yearly_panel = load_inspector_yearly_panel()
+    point = yearly_panel[yearly_panel["node_id"] == selected_node].copy()
+    point = point.sort_values("YEAR")
+    series_cols = available_yearly_series(point)
+    if point.empty or not series_cols:
+        st.info("No yearly climate or traffic values are available for this road section.")
+        return
+
+    norm_mode = st.selectbox("Normalization", ["Z-score", "Min-Max", "Robust"], index=0, key=f"norm_{selected_node}")
+    st.info(
+        """
+**How to read the normalization options**
+
+- **Z-score**: centres each variable around its own average and scales it by its standard deviation. This is useful for comparing whether a year is above or below the section's typical level.
+- **Min-Max**: rescales each variable between `0` and `1`. This is useful when you want to compare relative peaks and troughs.
+- **Robust**: centres each variable on its median and scales it by its interquartile range. This is more resistant to outliers than Z-score.
+
+In all three cases, the values are normalised **within the selected road section only**, so the goal is comparison across variables over time, not comparison of absolute units.
+"""
+    )
+    normalized = normalize_yearly_series(point, series_cols, norm_mode)
+    if normalized.empty:
+        st.info("Not enough yearly data to normalize any climate or traffic series for this road section.")
+    else:
+        fig = px.line(
+            normalized,
+            x="YEAR",
+            y="normalized_value",
+            color="Series",
+            markers=True,
+            title=f"Yearly climate and traffic profile for {selected_node}",
+            labels={"YEAR": "Year", "normalized_value": f"Normalized value ({norm_mode})"},
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    with st.expander("Show raw yearly values"):
+        raw = point[["YEAR", *series_cols]].copy().rename(columns={col: YEARLY_SERIES_LABELS.get(col, col) for col in series_cols})
+        st.dataframe(raw, use_container_width=True, hide_index=True)
+
+
+def render_distress_inspector(selected_node: str) -> None:
+    distress = load_inspector_distress()
+    point = distress[distress["node_id"] == selected_node].copy().sort_values("SURVEY_DATE")
+    if point.empty:
+        st.info("No distress survey history was found for this road section.")
+        return
+
+    st.caption(
+        f"{len(point)} survey rows from {point['SURVEY_DATE'].min().date()} to {point['SURVEY_DATE'].max().date()} "
+        f"across {', '.join(sorted(point['distress_source'].dropna().unique()))}."
+    )
+    metric_cols = [col for col in DISTRESS_LABELS if col in point.columns and pd.to_numeric(point[col], errors="coerce").notna().any()]
+    if not metric_cols:
+        st.info("Distress surveys exist, but none of the headline metrics are populated for this section.")
+        return
+
+    selected_metrics = st.multiselect(
+        "Distress metrics",
+        options=metric_cols,
+        default=metric_cols[: min(4, len(metric_cols))],
+        format_func=lambda col: DISTRESS_LABELS.get(col, col),
+        key=f"distress_metrics_{selected_node}",
+    )
+    if selected_metrics:
+        plot_df = point[["SURVEY_DATE", "distress_source", *selected_metrics]].melt(
+            id_vars=["SURVEY_DATE", "distress_source"],
+            value_vars=selected_metrics,
+            var_name="metric",
+            value_name="value",
+        ).dropna(subset=["value"])
+        plot_df["Metric"] = plot_df["metric"].map(lambda col: DISTRESS_LABELS.get(col, col))
+        fig = px.line(
+            plot_df,
+            x="SURVEY_DATE",
+            y="value",
+            color="Metric",
+            markers=True,
+            hover_data={"distress_source": True},
+            title=f"Distress survey timeline for {selected_node}",
+            labels={"SURVEY_DATE": "Survey date", "value": "Measured value"},
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    with st.expander("Show raw distress survey rows"):
+        cols = ["SURVEY_DATE", "distress_source", "CONSTRUCTION_NO", *metric_cols]
+        st.dataframe(point[cols], use_container_width=True, hide_index=True)
+
+
+def render_treatment_inspector(selected_node: str) -> None:
+    events = load_inspector_treatment_events()
+    point = events[events["node_id"] == selected_node].copy().sort_values("event_start_date")
+    if point.empty:
+        st.info("No EXPERIMENT_SECTION treatment or change events were found for this road section.")
+        return
+
+    plot_df = point.copy()
+    plot_df["plot_end_date"] = plot_df["event_end_date"].fillna(plot_df["event_start_date"] + pd.Timedelta(days=30))
+    plot_df["Treatment group"] = plot_df["broad_treatment_group"].map(lambda value: TREATMENT_LABELS.get(value, value))
+    plot_df["Treatment label"] = plot_df["treatment_label"].fillna("Missing / not recorded")
+    fig = px.timeline(
+        plot_df,
+        x_start="event_start_date",
+        x_end="plot_end_date",
+        y="Treatment label",
+        color="Treatment group",
+        title=f"Treatment / change history for {selected_node}",
+        hover_data={
+            "event_year": True,
+            "experiment_label": True,
+            "status_label": True,
+            "route_key": True,
+            "functional_class": True,
+            "plot_end_date": False,
+        },
+    )
+    fig.update_yaxes(autorange="reversed")
+    st.plotly_chart(fig, use_container_width=True)
+    with st.expander("Show raw treatment / change events"):
+        cols = [
+            "event_start_date",
+            "event_end_date",
+            "event_year",
+            "treatment_label",
+            "broad_treatment_group",
+            "experiment_label",
+            "status_label",
+            "construction_no",
+        ]
+        st.dataframe(point[cols], use_container_width=True, hide_index=True)
+
+
 def page_intro_box(text: str) -> None:
     st.markdown(text)
+
+
+def show_core_terms_box() -> None:
+    st.info(CORE_TERMS_MARKDOWN)
 
 
 nodes = add_project_counts(load_nodes(), load_projects())
@@ -556,13 +946,23 @@ if visible_scenarios.empty:
 section_lookup = build_section_lookup(visible_nodes if not visible_nodes.empty else nodes)
 section_options = sorted(section_lookup.keys())
 default_section = case_studies.iloc[0]["node_id"] if not case_studies.empty and case_studies.iloc[0]["node_id"] in section_lookup else (section_options[0] if section_options else None)
+if section_options:
+    pending_focus = st.session_state.get("pending_focus_node")
+    if pending_focus in section_options:
+        st.session_state["focus_node_widget"] = pending_focus
+        del st.session_state["pending_focus_node"]
+    if "focus_node_widget" not in st.session_state or st.session_state.get("focus_node_widget") not in section_options:
+        st.session_state["focus_node_widget"] = default_section
+else:
+    st.session_state["focus_node_widget"] = None
 focus_node = None
 if section_options:
     focus_node = sidebar.selectbox(
         "Road section",
         options=section_options,
-        index=section_options.index(default_section) if default_section in section_options else 0,
+        index=section_options.index(st.session_state["focus_node_widget"]) if st.session_state.get("focus_node_widget") in section_options else 0,
         format_func=lambda node_id: section_lookup.get(node_id, node_id),
+        key="focus_node_widget",
     )
 
 scenario_options = visible_scenarios.sort_values("delta_vht_proxy", ascending=False)["scenario_id"].tolist()
@@ -597,6 +997,7 @@ st.caption("A guided dissertation app that explains how asset-level road data we
 
 tabs = st.tabs(
     [
+        "Road Section Inspector",
         "Project Story / Overview",
         "Data Sources",
         "Graph Construction",
@@ -615,10 +1016,79 @@ tabs = st.tabs(
 with tabs[0]:
     page_intro_box(
         """
+This inspector is the best place to start if you are discovering the project.
+
+It connects the **network view** back to one real road section at a time:
+- where the section is located,
+- how its climate and traffic evolved over time,
+- what distress surveys recorded,
+- and what treatment or project history was recorded for it.
+"""
+    )
+    show_core_terms_box()
+    if not focus_node:
+        st.info("No road section is currently available under the selected state filter.")
+    else:
+        focus_info = nodes[nodes["node_id"] == focus_node].iloc[0]
+        inspector_nodes = visible_nodes if not visible_nodes.empty else nodes
+        inspector_map = draw_node_map(
+            inspector_nodes,
+            "Click a road section to inspect it",
+            color_col="project_count",
+            highlight_nodes=[focus_node],
+            height=720,
+        )
+        selection = st.plotly_chart(
+            inspector_map,
+            width="stretch",
+            key="inspector_node_map",
+            on_select="rerun",
+            selection_mode=("points",),
+        )
+        selected_points = []
+        if isinstance(selection, dict):
+            selected_points = selection.get("selection", {}).get("points", []) or selection.get("points", [])
+        for point in selected_points:
+            custom = point.get("customdata") if isinstance(point, dict) else None
+            if custom:
+                clicked_node = str(custom[0])
+                if clicked_node in section_options and clicked_node != st.session_state.get("focus_node_widget"):
+                    st.session_state["pending_focus_node"] = clicked_node
+                    st.rerun()
+
+        st.caption("This national map is the main entry point for inspection: click a point to make it the selected road section.")
+        metric_card_row(
+            [
+                ("Road section", str(focus_info["node_id"]), "Selected LTPP road section"),
+                ("State", str(focus_info["state_name"]), "State where the section is located"),
+                ("Route", str(focus_info.get("route_key", "n/a")), "Route or corridor label used in the graph"),
+                ("Functional class", str(focus_info.get("functional_class", "n/a")), "Broad road role, such as interstate-like or arterial-like"),
+                ("Climate grid ID", str(focus_info.get("merra_id", "n/a")), "Identifier of the linked MERRA climate cell"),
+                ("Project records", str(int(focus_info.get("project_count", 0))), "Count of linked project or treatment records"),
+            ]
+        )
+        tabs_inspector = st.tabs(["Yearly climate & traffic", "Distress timeline", "Treatment / maintenance"])
+        with tabs_inspector[0]:
+            st.info("These yearly series are normalised within the selected section so climate and traffic variables can be compared on the same chart even though they have different units.")
+            render_yearly_inspector(focus_node)
+        with tabs_inspector[1]:
+            st.info("Distress data come from dated survey rows. In other words, this tab shows when inspectors actually measured cracking and related condition variables.")
+            render_distress_inspector(focus_node)
+        with tabs_inspector[2]:
+            st.info("Treatment history comes from EXPERIMENT_SECTION and should be interpreted as broader treatment or project history, not as cracking-only maintenance.")
+            render_treatment_inspector(focus_node)
+        with st.expander("Show raw section attributes"):
+            st.dataframe(focus_info.to_frame().reset_index().rename(columns={"index": "Field", 0: "Value"}), use_container_width=True, hide_index=True)
+
+# Page 2
+with tabs[1]:
+    page_intro_box(
+        """
 This project starts with **individual pavement sections** and builds a **graph**
 to understand how maintenance decisions interact across a network.
 """
     )
+    show_core_terms_box()
     st.markdown(
         """
 **Project flow**
@@ -670,9 +1140,10 @@ to understand how maintenance decisions interact across a network.
 """
     )
 
-# Page 2
-with tabs[1]:
+# Page 3
+with tabs[2]:
     page_intro_box("This page explains what each dataset contributes to the overall pipeline.")
+    show_core_terms_box()
     data_source_table = pd.DataFrame(
         [
             ["General Section Info.xlsx", "Section metadata, route context, construction and treatment history", "Defines sections, route context, and treatment / experiment history"],
@@ -694,7 +1165,6 @@ with tabs[1]:
 - **Distress** means pavement condition, especially cracking.
 - **Traffic** means annual loading and section importance.
 - **Climate** means environmental exposure.
-- **EXPERIMENT_SECTION** means treatment / project history, not “maintenance caused only by cracking”.
 - **Coordinates and routes** are what allow the graph to be built.
 """
     )
@@ -702,8 +1172,8 @@ with tabs[1]:
         "Traffic is annual, not monthly. Therefore, the project estimates potential disruption using graph-based proxies rather than observed short-term traffic diversion."
     )
 
-# Page 3
-with tabs[2]:
+# Page 4
+with tabs[3]:
     page_intro_box(
         """
 The project uses a **section-level interdependency graph**, not a full national operational road network.
@@ -754,64 +1224,52 @@ The project uses a **section-level interdependency graph**, not a full national 
     )
 
     selected_view_nodes = visible_nodes if not visible_nodes.empty else nodes
-    map_col, web_col = st.columns(2)
-    with map_col:
-        st.plotly_chart(
-            draw_node_map(
-                selected_view_nodes,
-                "Road sections in the selected view",
-                color_col=None,
-            ),
-            use_container_width=True,
-        )
-        st.caption("This map only shows where the selected road sections are located across the US.")
-    with web_col:
-        st.plotly_chart(
-            draw_network_web(
-                selected_view_nodes,
-                visible_edges,
-                "Spider-web view of the selected graph",
-                focus_node=focus_node,
-                max_edges=max_edges,
-                color_by_cluster=False,
-            ),
-            use_container_width=True,
-        )
-        st.caption("This view drops the basemap and emphasises the actual graph relationships between the visible sections.")
+    st.plotly_chart(
+        draw_network_web(
+            selected_view_nodes,
+            visible_edges,
+            "Spider-web view of the selected graph",
+            focus_node=focus_node,
+            max_edges=max_edges,
+            color_by_cluster=False,
+            height=760,
+        ),
+        width="stretch",
+        key="graph_construction_web",
+    )
+    st.caption("This view drops the basemap and emphasises the actual graph relationships between the visible sections.")
 
     st.plotly_chart(
         draw_cluster_map(
             selected_view_nodes,
             visible_edges,
             "Cluster view of the selected graph",
+            height=760,
         ),
-        use_container_width=True,
+        width="stretch",
+        key="graph_construction_clusters",
     )
     st.caption("Each colour corresponds to one connected local cluster of road sections in the currently selected graph and state filter.")
-
-    if focus_node:
-        focus_info = nodes[nodes["node_id"] == focus_node].iloc[0]
-        st.markdown("### Section spotlight")
-        metric_card_row(
-            [
-                ("Road section", str(focus_info["node_id"]), "Selected section"),
-                ("State", str(focus_info["state_name"]), "State context"),
-                ("Route", str(focus_info.get("route_key", "n/a")), "Route / corridor label"),
-                ("Functional class", str(focus_info.get("functional_class", "n/a")), "Functional class"),
-            ]
-        )
-        st.plotly_chart(draw_local_network(visible_nodes if not visible_nodes.empty else nodes, visible_edges, focus_node), use_container_width=True)
 
     with st.expander("Show raw graph diagnostics"):
         st.dataframe(graph_diag, use_container_width=True)
         st.dataframe(graph_distance, use_container_width=True)
 
-# Page 4
-with tabs[3]:
+# Page 5
+with tabs[4]:
     page_intro_box(
         """
 The static disruption model does **not** use observed traffic assignment. It uses **synthetic graph-based target variables**
 to estimate how disruptive a set of simultaneous section closures could be.
+"""
+    )
+    st.info(
+        """
+**Key terms on this page**
+
+- **Origin-destination pair (OD pair)**: a possible trip from one important road section to another.
+- **Shortest path**: the quickest available route through the graph.
+- **Proxy**: a synthetic indicator used because observed short-term diversion traffic is not available in the dataset.
 """
     )
     st.markdown("### Target definitions")
@@ -825,7 +1283,7 @@ to estimate how disruptive a set of simultaneous section closures could be.
         """
 - **T0** = baseline shortest-path travel time
 - **T1** = post-closure shortest-path travel time
-- **w_od** = OD demand weight
+- **w_od** = weight of one origin-destination pair, so more important trips count more heavily
 - **A0_max** = baseline largest connected component asset weight
 - **A1_max** = post-closure largest connected component asset weight
 """
@@ -849,7 +1307,7 @@ to estimate how disruptive a set of simultaneous section closures could be.
                 ("Closed nodes", str(row["closed_node_ids"]), "Sections removed from the residual graph"),
                 ("Extra travel-time proxy", compact_number(row["delta_vht_proxy"]), "Synthetic extra travel penalty"),
                 ("Connectivity loss share", f"{safe_float(row['connectivity_loss_pct']):.4f}", "Largest-component asset loss"),
-                ("Disconnected OD share", f"{safe_float(row['disconnected_od_pct']):.4f}", "Weighted share of unreachable OD pairs"),
+                ("Disconnected origin-destination share", f"{safe_float(row['disconnected_od_pct']):.4f}", "Weighted share of unreachable origin-destination pairs"),
                 ("Overall disruption score", compact_number(row["disruption_score"]), "Composite disruption proxy"),
             ]
         )
@@ -879,8 +1337,8 @@ This makes the targets defensible as disruption proxies, but they should not be 
 """
     )
 
-# Page 5
-with tabs[4]:
+# Page 6
+with tabs[5]:
     page_intro_box(
         """
 The static graph model learns:
@@ -940,13 +1398,22 @@ The static graph model learns:
 """
     )
 
-# Page 6
-with tabs[5]:
+# Page 7
+with tabs[6]:
     page_intro_box(
         """
 The temporal model asks a different question:
 
 **Can neighbour and treatment context help explain next-year cracking?**
+"""
+    )
+    st.info(
+        """
+**How to read these model names**
+
+- **RF local** means a **Random Forest** model using only section-level features.
+- **GCN** means a **Graph Convolutional Network** that also uses neighbouring sections in the graph.
+- **R²** measures predictive fit. Higher is better, with `1` meaning perfect fit.
 """
     )
     temporal_table = build_temporal_result_table(treatment_ablation)
@@ -989,8 +1456,8 @@ The temporal model asks a different question:
 """
     )
 
-# Page 7
-with tabs[6]:
+# Page 8
+with tabs[7]:
     page_intro_box(
         """
 `PROJECT_HIST_AGE_EXP` turned out to be too broad for treatment semantics.
@@ -1038,8 +1505,8 @@ with tabs[6]:
 """
     )
 
-# Page 8
-with tabs[7]:
+# Page 9
+with tabs[8]:
     page_intro_box(
         """
 This event-study analysis asks whether different treatment groups show different before/after patterns
@@ -1096,8 +1563,16 @@ and whether neighbouring sections move in similar ways.
     )
     st.warning("This event-study is exploratory, not causal.")
 
-# Page 9
-with tabs[8]:
+# Page 10
+with tabs[9]:
+    st.info(
+        """
+**Climate interpretation on this page**
+
+Monthly climate is useful because it captures **seasonality, extremes, and short-term exposure windows** that annual averages can hide.
+Examples include heat spikes, freeze-thaw months, very wet months, or unusually high solar exposure before a treatment event.
+"""
+    )
     page_intro_box(
         """
 Monthly climate was kept out of the main annual cracking model, but it was tested as an explanatory layer for treatment types.
@@ -1152,8 +1627,8 @@ Monthly climate was kept out of the main annual cracking model, but it was teste
 """
     )
 
-# Page 10
-with tabs[9]:
+# Page 11
+with tabs[10]:
     page_intro_box("This page summarises the full dissertation story from asset-level records to network-aware maintenance planning.")
     st.markdown(
         """
@@ -1194,8 +1669,8 @@ with tabs[9]:
 """
     )
 
-# Page 11
-with tabs[10]:
+# Page 12
+with tabs[11]:
     page_intro_box("This appendix keeps the raw diagnostics available without interrupting the main dissertation narrative.")
     appendix_files = [
         "graph_diagnostics.csv",
