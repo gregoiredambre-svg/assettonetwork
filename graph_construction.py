@@ -65,6 +65,31 @@ def valid_route_key(series: pd.Series) -> pd.Series:
     return text.ne("") & text.ne("_")
 
 
+TREATMENT_GROUPS = {
+    "crack_sealing": ["crack sealing", "joint sealing", "saw and seal"],
+    "asphalt_overlay": ["overlay", "mill off ac and overlay", "mill existing pavement and overlay", "warm mix ac overlay"],
+    "seal_coat": ["seal coat", "slurry seal", "fog seal", "surface treatment", "prime coat", "tack coat", "sand seal"],
+    "patching": ["patch", "pothole", "spot patch", "skin patch", "strip patch"],
+    "grinding": ["grinding", "grooving"],
+    "shoulder_restoration": ["shoulder restoration", "shoulder replacement"],
+    "reconstruction_or_major_rehab": ["reconstruction", "slab replacement", "fracture treatment", "load transfer restoration", "subdrain", "subdrainage", "drainage", "jacking", "subsealing"],
+}
+
+
+def classify_treatment_group(label: object) -> str:
+    if pd.isna(label):
+        return "unknown"
+    text = str(label).strip().lower()
+    if not text:
+        return "unknown"
+    for group, keywords in TREATMENT_GROUPS.items():
+        if any(keyword in text for keyword in keywords):
+            return group
+    if text == "missing / not recorded":
+        return "unknown"
+    return "other_maintenance"
+
+
 def load_excel_table(path: Path, sheet: str) -> pd.DataFrame:
     return pd.read_excel(path, sheet_name=sheet)
 
@@ -283,17 +308,58 @@ def load_traffic_features() -> pd.DataFrame:
 
 
 def load_project_events() -> pd.DataFrame:
-    """Load maintenance project events from PROJECT_HIST_AGE_EXP."""
+    """Load dated project/treatment events from EXPERIMENT_SECTION."""
     file = DATA_DIR / "General Section Info.xlsx"
-    df = load_excel_table(file, "PROJECT_HIST_AGE_EXP")
+    df = load_excel_table(file, "EXPERIMENT_SECTION")
     df = df.rename(columns={"STATE_CODE": "state_code", "SHRP_ID": "shrp_id"})
-    df = normalize_string_columns(df, ["state_code", "shrp_id"])
+    df = normalize_string_columns(
+        df,
+        [
+            "state_code",
+            "shrp_id",
+            "CN_CHANGE_REASON",
+            "CN_CHANGE_REASON_EXP",
+            "EXPERIMENT_NO_EXP",
+            "STATUS_EXP",
+            "GPS_SPS_EXP",
+        ],
+    )
     df["node_id"] = df["state_code"].astype(str) + "_" + df["shrp_id"].astype(str)
-    df["construction_date"] = pd.to_datetime(df["CONSTRUCTION_DATE"], errors="coerce")
-    df["traffic_open_date"] = pd.to_datetime(df["TRAFFIC_OPEN_DATE"], errors="coerce")
-    df["project_id"] = (df["node_id"] + "_" + df["construction_date"].dt.strftime("%Y%m%d")).fillna(df["node_id"])
-    result = df[["project_id", "node_id", "construction_date", "traffic_open_date", "ORIGINAL_NO_LANES", "FINAL_NO_LANES", "YEAR_WIDENED"]]
-    log(f"Loaded {len(result)} maintenance project events")
+    df["construction_no"] = pd.to_numeric(df.get("CONSTRUCTION_NO"), errors="coerce")
+    df["construction_date"] = pd.to_datetime(df.get("CN_ASSIGN_DATE"), errors="coerce")
+    fallback_start = pd.to_datetime(df.get("ASSIGN_DATE"), errors="coerce")
+    df["construction_date"] = df["construction_date"].fillna(fallback_start)
+    df["traffic_open_date"] = pd.to_datetime(df.get("DEASSIGN_DATE"), errors="coerce")
+    df["event_year"] = df["construction_date"].dt.year.astype("Int64")
+    df["treatment_code"] = df.get("CN_CHANGE_REASON")
+    df["treatment_label"] = df.get("CN_CHANGE_REASON_EXP").fillna("Missing / not recorded")
+    df["broad_treatment_group"] = df["treatment_label"].map(classify_treatment_group)
+    df["experiment_label"] = df.get("EXPERIMENT_NO_EXP")
+    df["status_label"] = df.get("STATUS_EXP")
+    df["gps_sps_label"] = df.get("GPS_SPS_EXP")
+    df = df.dropna(subset=["construction_date"]).copy()
+    df = df.sort_values(["node_id", "construction_date", "construction_no", "treatment_label"]).reset_index(drop=True)
+    seq = df.groupby(["node_id", "construction_date"]).cumcount() + 1
+    date_text = df["construction_date"].dt.strftime("%Y%m%d")
+    construction_text = df["construction_no"].fillna(-1).astype(int).astype(str)
+    df["project_id"] = df["node_id"] + "_" + date_text + "_" + construction_text + "_" + seq.astype(str)
+    result = df[
+        [
+            "project_id",
+            "node_id",
+            "construction_date",
+            "traffic_open_date",
+            "construction_no",
+            "event_year",
+            "treatment_code",
+            "treatment_label",
+            "broad_treatment_group",
+            "experiment_label",
+            "status_label",
+            "gps_sps_label",
+        ]
+    ].copy()
+    log(f"Loaded {len(result)} project/treatment events from EXPERIMENT_SECTION")
     return result
 
 
@@ -744,6 +810,7 @@ def assemble_graph() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataF
     edges = add_edge_weight_views(edges)
 
     projects = load_project_events()
+    projects = projects[projects["node_id"].isin(set(nodes["node_id"].astype(str)))].copy()
     conflicts = build_project_conflicts(projects, edges)
     node_conflicts = build_node_conflict_edges(projects, edges)
     return nodes, edges, projects, conflicts, node_conflicts

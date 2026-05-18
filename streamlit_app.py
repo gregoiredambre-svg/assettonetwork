@@ -682,7 +682,6 @@ def build_temporal_result_table(treatment_ablation: pd.DataFrame) -> pd.DataFram
     table = treatment_ablation.copy()
     friendly_variant = {
         "none": "No project/treatment features",
-        "old_proxy": "Old PROJECT_HIST_AGE_EXP proxy",
         "experiment": "EXPERIMENT_SECTION treatment features",
     }
     table["Variant"] = table["treatment_mode"].map(friendly_variant)
@@ -1133,7 +1132,7 @@ to understand how maintenance decisions interact across a network.
 **Current conclusion**
 
 - RF is best for local cracking prediction.
-- The spatial graph performs best for most static disruption proxies.
+- The full refined graph now performs best for most static disruption proxies, while the spatial graph remains best for disconnected trip-pair share.
 - EXPERIMENT_SECTION treatment features clearly improve the temporal GCN.
 - Monthly climate helps explain treatment categories, but not the main cracking model.
 - Graph-aware maintenance portfolio optimisation is the next required step.
@@ -1392,8 +1391,8 @@ The static graph model learns:
         """
 **What this means**
 
-- The **spatial graph** performs best for most static disruption targets.
-- For this shortest-path disruption task, nearby sections mattered more than richer similarity links.
+- The **full refined graph** performs best for extra travel-time proxy, connectivity loss share, and overall disruption score.
+- The **spatial graph** remains best for disconnected trip-pair share.
 - The model estimates **potential disruption of simultaneous outages**, not observed diversion behaviour.
 """
     )
@@ -1460,8 +1459,8 @@ The temporal model asks a different question:
 with tabs[7]:
     page_intro_box(
         """
-`PROJECT_HIST_AGE_EXP` turned out to be too broad for treatment semantics.
-`EXPERIMENT_SECTION` provides a better treatment/project history representation.
+`EXPERIMENT_SECTION` is the treatment-history table used in the current project.
+It provides dated construction-number changes, experiment/status changes, and treatment labels at section level.
 """
     )
     key_cols = pd.DataFrame(

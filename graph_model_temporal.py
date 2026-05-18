@@ -110,9 +110,22 @@ def build_node_id_join(state_code: pd.Series, shrp_id: pd.Series) -> pd.Series:
     return state_code.astype(str).str.strip() + "_" + normalize_shrp_id_series(shrp_id).fillna("")
 
 
+def build_node_id_join_scalar(node_id: object) -> str | None:
+    text = str(node_id).strip()
+    if not text or "_" not in text:
+        return None
+    state_code, shrp_id = text.split("_", 1)
+    normalized = normalize_shrp_id_series(pd.Series([shrp_id])).iloc[0]
+    if normalized is None:
+        return None
+    return f"{state_code.strip()}_{normalized}"
+
+
 def load_base_nodes() -> pd.DataFrame:
     nodes = pd.read_csv(GRAPH_DIR / "nodes.csv", low_memory=False)
     nodes["node_id"] = nodes["node_id"].astype(str)
+    if "node_id_join" not in nodes.columns:
+        nodes["node_id_join"] = nodes["node_id"].map(build_node_id_join_scalar)
     nodes["NO_OF_LANES"] = pd.to_numeric(nodes.get("NO_OF_LANES"), errors="coerce")
     nodes["SECTION_LENGTH"] = pd.to_numeric(nodes.get("SECTION_LENGTH"), errors="coerce")
     nodes["SPEED_LIMIT"] = pd.to_numeric(nodes.get("SPEED_LIMIT"), errors="coerce")
@@ -377,44 +390,6 @@ def load_monthly_climate_annual_features() -> pd.DataFrame:
     return grid.merge(merged, on="merra_id", how="left")
 
 
-def load_maintenance_panel(node_ids: list[str], years: list[int]) -> pd.DataFrame:
-    path = DATA_DIR / "General Section Info.xlsx"
-    df = pd.read_excel(path, sheet_name="PROJECT_HIST_AGE_EXP")
-    df = df.rename(columns={"STATE_CODE": "state_code", "SHRP_ID": "shrp_id"})
-    normalize_string_columns(df, ["state_code", "shrp_id"])
-    df["node_id"] = build_node_id(df["state_code"], df["shrp_id"])
-
-    start_col = "CN_ASSIGN_DATE" if "CN_ASSIGN_DATE" in df.columns else "CONSTRUCTION_DATE"
-    end_col = "DEASSIGN_DATE" if "DEASSIGN_DATE" in df.columns else "TRAFFIC_OPEN_DATE"
-    df["start_date"] = pd.to_datetime(df[start_col], errors="coerce")
-    df["end_date"] = pd.to_datetime(df[end_col], errors="coerce")
-    df["end_date"] = df["end_date"].fillna(df["start_date"])
-    df = df.dropna(subset=["start_date"]).copy()
-    df["start_year"] = df["start_date"].dt.year.astype(int)
-    df["end_year"] = df["end_date"].dt.year.fillna(df["start_year"]).astype(int)
-    df["end_year"] = np.maximum(df["end_year"], df["start_year"])
-
-    idx = pd.MultiIndex.from_product([node_ids, years], names=["node_id", "YEAR"])
-    out = pd.DataFrame(index=idx).reset_index()
-    out["under_maintenance"] = 0
-    out["years_since_last_treatment"] = np.nan
-
-    events_by_node = df.groupby("node_id")
-    for node_id, group in events_by_node:
-        if node_id not in set(node_ids):
-            continue
-        starts = sorted(group["start_year"].dropna().astype(int).tolist())
-        ranges = list(group[["start_year", "end_year"]].itertuples(index=False, name=None))
-        for year in years:
-            under = any(start <= year <= end for start, end in ranges)
-            out_idx = (out["node_id"] == node_id) & (out["YEAR"] == year)
-            out.loc[out_idx, "under_maintenance"] = int(under)
-            prior = [start for start in starts if start <= year]
-            if prior:
-                out.loc[out_idx, "years_since_last_treatment"] = year - max(prior)
-    return out
-
-
 def classify_treatment_group(label: object) -> str:
     if pd.isna(label):
         return "unknown"
@@ -599,7 +574,6 @@ def build_temporal_panel(
     monthly_climate = load_monthly_climate_annual_features() if use_monthly_climate_aggregates else None
 
     years = sorted(int(y) for y in distress["YEAR"].dropna().unique())
-    old_proxy = load_maintenance_panel(nodes["node_id"].tolist(), years)
     treatment_semantics = None
     treatment_counts = None
     treatment_panel = None
@@ -614,7 +588,6 @@ def build_temporal_panel(
     panel = panel.merge(climate, on=["node_id_join", "YEAR"], how="left", suffixes=("", "_annual"))
     if monthly_climate is not None:
         panel = panel.merge(monthly_climate, on=["node_id_join", "YEAR"], how="left", suffixes=("", "_monthly"))
-    panel = panel.merge(old_proxy, on=["node_id", "YEAR"], how="left")
     if treatment_panel is not None:
         panel = panel.merge(treatment_panel, on=["node_id", "YEAR"], how="left")
 
@@ -632,7 +605,6 @@ def build_feature_sets(panel: pd.DataFrame, treatment_mode: str) -> tuple[list[s
     climate_cols = [col for col in panel.columns if col.startswith(("humid_", "precip_", "wind_", "solar_", "temp_year_"))]
     monthlyagg_cols = [col for col in panel.columns if col.startswith("monthlyagg_")]
     static_cols = ["NO_OF_LANES", "SECTION_LENGTH", "SPEED_LIMIT", "functional_class"]
-    old_proxy_cols = ["under_maintenance", "years_since_last_treatment"]
     experiment_cols = [
         "had_treatment_event_t",
         "years_since_last_treatment_event",
@@ -649,9 +621,7 @@ def build_feature_sets(panel: pd.DataFrame, treatment_mode: str) -> tuple[list[s
         "neighbour_crack_sealing_count_last_5yr",
     ]
     treatment_cols: list[str] = []
-    if treatment_mode == "old_proxy":
-        treatment_cols = old_proxy_cols
-    elif treatment_mode == "experiment":
+    if treatment_mode == "experiment":
         treatment_cols = experiment_cols
     local_cols = [
         "cracking_t",
@@ -1096,7 +1066,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--use-monthly-climate-aggregates", action="store_true")
     parser.add_argument(
         "--treatment-mode",
-        choices=["none", "old_proxy", "experiment"],
+        choices=["none", "experiment"],
         default="experiment",
     )
     return parser.parse_args()
@@ -1128,7 +1098,6 @@ def main() -> None:
 
     for treatment_mode, output_tag, label in [
         ("none", "no_project_features", "No project/treatment features"),
-        ("old_proxy", "old_project_history_proxy", "Old PROJECT_HIST_AGE_EXP proxy"),
         ("experiment", "experiment_section_treatment_features", "EXPERIMENT_SECTION treatment features"),
     ]:
         log(f"Running temporal treatment ablation: {treatment_mode}")
