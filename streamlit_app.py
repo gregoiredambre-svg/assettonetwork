@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import textwrap
 
 import networkx as nx
 import numpy as np
@@ -22,6 +23,32 @@ st.set_page_config(
 
 APP_TITLE = "From Asset to Network: Graph-Based Road Maintenance Explorer"
 
+st.markdown(
+    """
+    <style>
+    div[data-testid="stMetric"] {
+        background: #f7f7f7;
+        border: 1px solid #e6e6e6;
+        border-radius: 14px;
+        padding: 0.85rem 1rem;
+    }
+    div[data-testid="stMetric"] label {
+        font-size: 0.95rem !important;
+    }
+    div[data-testid="stMetricValue"] {
+        font-size: 1.35rem !important;
+        line-height: 1.1 !important;
+    }
+    .story-lead {
+        font-size: 1.1rem;
+        line-height: 1.6;
+        margin-bottom: 0.3rem;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 GRAPH_VARIANTS = {
     "spatial": "Spatial only",
     "spatial_route": "Spatial + Route",
@@ -29,9 +56,9 @@ GRAPH_VARIANTS = {
 }
 
 GRAPH_VARIANT_STORY = {
-    "spatial": "Nearby sections only. This is the clearest structure for proxy disruption prediction.",
-    "spatial_route": "Nearby sections plus local same-route corridor continuity. This is useful for corridor-based interpretation.",
-    "full_refined": "Spatial plus route plus filtered similarity in function, traffic, climate, and structure.",
+    "spatial": "Sections are linked when they are geographically close. This is the simplest graph and the easiest one to interpret as local disruption neighbourhoods.",
+    "spatial_route": "Sections are linked when they are geographically close, and extra corridor links are added along the same route so that A-B-C corridor continuity is visible in the graph.",
+    "full_refined": "This graph keeps the spatial and route links, then adds sparse filtered similarity links between sections that look alike in road role, traffic, climate, and structure.",
 }
 
 STATE_NAMES = {
@@ -238,7 +265,6 @@ def node_label(row: pd.Series) -> str:
     return f"{node_id} — {state_name} — {route_txt} — class {func_txt}"
 
 
-@st.cache_data
 def load_nodes() -> pd.DataFrame:
     nodes = pd.read_csv(DATA_DIR / "nodes.csv", low_memory=False)
     nodes = nodes.assign(
@@ -252,14 +278,12 @@ def load_nodes() -> pd.DataFrame:
     return nodes.dropna(subset=["latitude", "longitude"]).copy()
 
 
-@st.cache_data
 def load_projects() -> pd.DataFrame:
     projects = pd.read_csv(DATA_DIR / "projects.csv", low_memory=False)
     projects["node_id"] = projects["node_id"].astype(str)
     return projects
 
 
-@st.cache_data
 def load_variant_bundle(variant: str) -> dict[str, object]:
     bundle: dict[str, object] = {}
     bundle["network_edges"] = pd.read_csv(tagged_graph_path("network_edges_research", variant, ".csv"), low_memory=False)
@@ -271,18 +295,30 @@ def load_variant_bundle(variant: str) -> dict[str, object]:
     return bundle
 
 
-@st.cache_data
 def load_report_csv(name: str) -> pd.DataFrame:
     return pd.read_csv(REPORT_DIR / name, low_memory=False)
 
 
-@st.cache_data
 def load_report_json(name: str) -> dict:
     with open(REPORT_DIR / name, "r", encoding="utf-8") as fh:
         return json.load(fh)
 
 
-@st.cache_data
+def load_optional_report_csv(name: str) -> pd.DataFrame:
+    path = REPORT_DIR / name
+    if not path.exists():
+        return pd.DataFrame()
+    return pd.read_csv(path, low_memory=False)
+
+
+def load_optional_report_json(name: str) -> dict:
+    path = REPORT_DIR / name
+    if not path.exists():
+        return {}
+    with open(path, "r", encoding="utf-8") as fh:
+        return json.load(fh)
+
+
 def load_inspector_yearly_panel() -> pd.DataFrame:
     nodes = load_nodes()[["node_id", "node_id_join", "state_code", "state_name", "route_key", "functional_class", "merra_id"]].copy()
 
@@ -342,7 +378,6 @@ def load_inspector_yearly_panel() -> pd.DataFrame:
     return panel
 
 
-@st.cache_data
 def load_inspector_distress() -> pd.DataFrame:
     distress_path = RAW_DATA_DIR / "Analysis Ready Distress.xlsx"
     specs = {
@@ -368,7 +403,9 @@ def load_inspector_distress() -> pd.DataFrame:
             sheet_name=sheet_name,
             usecols=["STATE_CODE", "SHRP_ID", "SURVEY_DATE", "CONSTRUCTION_NO", *metric_cols],
         )
-        raw["node_id"] = raw.apply(lambda row: f"{str(row['STATE_CODE']).strip()}_{str(row['SHRP_ID']).strip()}", axis=1)
+        raw["node_id_join"] = raw.apply(lambda row: build_node_id_join_from_parts(row["STATE_CODE"], row["SHRP_ID"]), axis=1)
+        node_lookup = load_nodes()[["node_id", "node_id_join"]].drop_duplicates(subset=["node_id_join"])
+        raw = raw.merge(node_lookup, on="node_id_join", how="left")
         raw["SURVEY_DATE"] = pd.to_datetime(raw["SURVEY_DATE"], errors="coerce")
         raw["YEAR"] = raw["SURVEY_DATE"].dt.year.astype("Int64")
         raw["distress_source"] = sheet_name.replace("ANALYSIS_DIS_", "")
@@ -378,7 +415,6 @@ def load_inspector_distress() -> pd.DataFrame:
     return pd.concat(pieces, ignore_index=True)
 
 
-@st.cache_data
 def load_inspector_treatment_events() -> pd.DataFrame:
     events = pd.read_csv(REPORT_DIR / "experiment_section_event_table.csv", low_memory=False)
     events["node_id"] = events["node_id"].astype(str)
@@ -517,12 +553,35 @@ def draw_network_web(
     edges: pd.DataFrame,
     title: str,
     focus_node: str | None = None,
-    max_edges: int = 1200,
+    max_edges: int | None = None,
     color_by_cluster: bool = False,
     height: int = 700,
 ) -> go.Figure:
     frame_nodes = nodes.copy()
-    edge_frame = edges.head(max_edges).copy()
+    edge_frame = edges.copy()
+    if not edge_frame.empty:
+        sort_frame = edge_frame.copy()
+        sort_frame["distance_km"] = pd.to_numeric(sort_frame.get("distance_km"), errors="coerce")
+        sort_frame["role_priority"] = sort_frame.get("edge_role", "").map({"corridor": 0, "spatial": 1, "diversion": 2}).fillna(3)
+        if focus_node and focus_node in set(frame_nodes["node_id"].astype(str)):
+            temp_graph = nx.Graph()
+            temp_graph.add_nodes_from(frame_nodes["node_id"].astype(str).tolist())
+            temp_graph.add_edges_from(sort_frame[["source", "target"]].astype(str).itertuples(index=False, name=None))
+            try:
+                focus_component = nx.node_connected_component(temp_graph, focus_node)
+            except Exception:
+                focus_component = {focus_node}
+            sort_frame["focus_component_edge"] = sort_frame["source"].astype(str).isin(focus_component) & sort_frame["target"].astype(str).isin(focus_component)
+        else:
+            sort_frame["focus_component_edge"] = False
+        sort_frame = sort_frame.sort_values(
+            by=["focus_component_edge", "role_priority", "distance_km"],
+            ascending=[False, True, True],
+            na_position="last",
+        )
+        if max_edges is not None:
+            sort_frame = sort_frame.head(max_edges)
+        edge_frame = sort_frame.drop(columns=[c for c in ["focus_component_edge", "role_priority"] if c in sort_frame.columns]).copy()
     if color_by_cluster:
         frame_nodes = assign_component_clusters(frame_nodes, edge_frame)
     fig = go.Figure()
@@ -659,6 +718,13 @@ def metric_card_row(metrics: list[tuple[str, str, str]]) -> None:
         col.metric(label, value, help=help_text)
 
 
+def wrap_multiline_label(text: object, width: int = 24) -> str:
+    label = str(text).strip() if text is not None else ""
+    if not label:
+        return "Missing / not recorded"
+    return "<br>".join(textwrap.wrap(label, width=width)) or label
+
+
 def best_static_rows(comparison: pd.DataFrame) -> pd.DataFrame:
     static_rows = comparison[comparison["model_family"] == "static"].copy()
     idx = static_rows.groupby("target")["gcn_test_r2"].idxmax()
@@ -780,7 +846,7 @@ In all three cases, the values are normalised **within the selected road section
             title=f"Yearly climate and traffic profile for {selected_node}",
             labels={"YEAR": "Year", "normalized_value": f"Normalized value ({norm_mode})"},
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     with st.expander("Show raw yearly values"):
         raw = point[["YEAR", *series_cols]].copy().rename(columns={col: YEARLY_SERIES_LABELS.get(col, col) for col in series_cols})
         st.dataframe(raw, use_container_width=True, hide_index=True)
@@ -827,7 +893,7 @@ def render_distress_inspector(selected_node: str) -> None:
             title=f"Distress survey timeline for {selected_node}",
             labels={"SURVEY_DATE": "Survey date", "value": "Measured value"},
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     with st.expander("Show raw distress survey rows"):
         cols = ["SURVEY_DATE", "distress_source", "CONSTRUCTION_NO", *metric_cols]
         st.dataframe(point[cols], use_container_width=True, hide_index=True)
@@ -844,11 +910,12 @@ def render_treatment_inspector(selected_node: str) -> None:
     plot_df["plot_end_date"] = plot_df["event_end_date"].fillna(plot_df["event_start_date"] + pd.Timedelta(days=30))
     plot_df["Treatment group"] = plot_df["broad_treatment_group"].map(lambda value: TREATMENT_LABELS.get(value, value))
     plot_df["Treatment label"] = plot_df["treatment_label"].fillna("Missing / not recorded")
+    plot_df["Treatment label wrapped"] = plot_df["Treatment label"].map(lambda value: wrap_multiline_label(value, width=26))
     fig = px.timeline(
         plot_df,
         x_start="event_start_date",
         x_end="plot_end_date",
-        y="Treatment label",
+        y="Treatment label wrapped",
         color="Treatment group",
         title=f"Treatment / change history for {selected_node}",
         hover_data={
@@ -861,7 +928,8 @@ def render_treatment_inspector(selected_node: str) -> None:
         },
     )
     fig.update_yaxes(autorange="reversed")
-    st.plotly_chart(fig, use_container_width=True)
+    fig.update_layout(height=max(520, 90 + 42 * plot_df["Treatment label wrapped"].nunique()))
+    st.plotly_chart(fig, width="stretch")
     with st.expander("Show raw treatment / change events"):
         cols = [
             "event_start_date",
@@ -880,6 +948,27 @@ def page_intro_box(text: str) -> None:
     st.markdown(text)
 
 
+def file_modified_label(path: Path) -> str:
+    if not path.exists():
+        return "missing"
+    return pd.Timestamp(path.stat().st_mtime, unit="s").strftime("%Y-%m-%d %H:%M:%S")
+
+
+def build_data_freshness_table() -> pd.DataFrame:
+    rows = []
+    for rel in [
+        ROOT / "graph_data" / "nodes.csv",
+        ROOT / "graph_data" / "edges.csv",
+        REPORT_DIR / "treatment_feature_ablation.csv",
+        REPORT_DIR / "part1_rgcn_temporal.csv",
+        REPORT_DIR / "part1_ood_temporal.csv",
+        REPORT_DIR / "same_route_real_axis_summary.csv",
+        REPORT_DIR / "cracking_correlation_by_edge_type.csv",
+    ]:
+        rows.append({"File": rel.name, "Last modified": file_modified_label(rel)})
+    return pd.DataFrame(rows)
+
+
 def show_core_terms_box() -> None:
     st.info(CORE_TERMS_MARKDOWN)
 
@@ -889,32 +978,38 @@ projects = load_projects()
 graph_diag = load_report_csv("graph_diagnostics.csv")
 graph_distance = load_report_csv("graph_distance_summary.csv")
 graph_variant_comparison = load_report_csv("graph_variant_model_comparison.csv")
-climate_meta = load_report_json("climate_mapping_diagnostics.json")
-monthly_ablation = load_report_csv("monthly_climate_ablation.csv")
 treatment_ablation = load_report_csv("treatment_feature_ablation.csv")
-treatment_semantics = load_report_csv("treatment_feature_semantics.csv")
 treatment_counts = load_report_csv("experiment_treatment_group_counts.csv")
 event_by_group = load_report_csv("experiment_event_study_by_group.csv")
-event_climate_by_group = load_report_csv("experiment_event_study_climate_by_group.csv")
 event_classifier = load_report_csv("experiment_event_study_treatment_classifier.csv")
-event_importance = load_report_csv("experiment_event_study_feature_importance.csv")
-event_neighbour_vs_control = load_report_csv("experiment_event_study_neighbour_vs_control.csv")
 event_interpretation = load_report_json("experiment_event_study_interpretation.json")
 case_studies = load_report_csv("dissertation_case_study_summaries.csv")
-static_target_defs = load_report_csv("static_target_variable_definitions.csv")
-static_target_defs_json = load_report_json("static_target_variable_definitions.json")
-static_target_worked = load_report_csv("static_target_worked_example.csv")
-monthly_feature_diag = load_report_csv("monthlyagg_feature_diagnostics.csv")
-climate_mapping_diag = load_report_csv("climate_mapping_diagnostics.csv")
-monthly_redundancy = load_report_csv("event_study_monthly_vs_annual_climate_redundancy.csv")
+static_target_defs = load_optional_report_csv("static_target_variable_definitions.csv")
+static_target_worked_example = load_optional_report_csv("static_target_worked_example.csv")
+part1_rgcn = load_report_csv("part1_rgcn_temporal.csv")
+part1_ood_temporal = load_report_csv("part1_ood_temporal.csv")
+part1_ood_static = load_report_csv("part1_ood_static.csv")
+osm_comparison_summary = load_report_csv("osm_comparison_summary.csv")
+osm_topology_status = load_report_csv("osm_topology_status_summary.csv")
+osm_meta = load_report_json("osm_comparison_summary.json")
+same_route_real_axis_summary = load_report_csv("same_route_real_axis_summary.csv")
+same_route_edge_suspects_summary = load_report_csv("same_route_edge_suspects_summary.csv")
+cracking_corr_by_edge = load_optional_report_csv("cracking_correlation_by_edge_type.csv")
+cracking_corr_spatial_bins = load_optional_report_csv("cracking_correlation_spatial_bins.csv")
+temporal_feature_audit = load_optional_report_csv("temporal_feature_audit.csv")
+temporal_feature_audit_summary = load_optional_report_json("temporal_feature_audit_summary.json")
 
 sidebar = st.sidebar
-sidebar.title("Explore the story")
-advanced_mode = sidebar.toggle("Advanced mode", value=False, help="Show a few extra controls and the technical appendix.")
+sidebar.title("Explore the project")
+advanced_mode = sidebar.toggle(
+    "Advanced mode",
+    value=False,
+    help="Show extra controls and a light technical appendix.",
+)
 graph_variant = sidebar.selectbox(
     "Graph variant",
     options=list(GRAPH_VARIANTS.keys()),
-    index=0,
+    index=1,
     format_func=lambda key: GRAPH_VARIANTS[key],
 )
 
@@ -932,19 +1027,21 @@ variant_bundle = load_variant_bundle(graph_variant)
 network_edges = variant_bundle["network_edges"].copy()
 network_edges["source"] = network_edges["source"].astype(str)
 network_edges["target"] = network_edges["target"].astype(str)
-variant_scenarios = variant_bundle["scenarios"].copy()
 variant_predictions = variant_bundle["predictions"].copy()
 
 visible_nodes = filter_by_states(nodes, selected_states)
 visible_node_ids = set(visible_nodes["node_id"].astype(str))
 visible_edges = filter_edges_for_visible_nodes(network_edges, visible_node_ids)
-visible_scenarios = filter_scenarios_to_states(variant_scenarios, selected_states, nodes)
-if visible_scenarios.empty:
-    visible_scenarios = variant_scenarios.copy()
+selected_view_nodes = visible_nodes if not visible_nodes.empty else nodes
+selected_view_edges = visible_edges if not visible_edges.empty else network_edges
 
-section_lookup = build_section_lookup(visible_nodes if not visible_nodes.empty else nodes)
+section_lookup = build_section_lookup(selected_view_nodes)
 section_options = sorted(section_lookup.keys())
-default_section = case_studies.iloc[0]["node_id"] if not case_studies.empty and case_studies.iloc[0]["node_id"] in section_lookup else (section_options[0] if section_options else None)
+default_section = (
+    case_studies.iloc[0]["node_id"]
+    if not case_studies.empty and case_studies.iloc[0]["node_id"] in section_lookup
+    else (section_options[0] if section_options else None)
+)
 if section_options:
     pending_focus = st.session_state.get("pending_focus_node")
     if pending_focus in section_options:
@@ -954,6 +1051,7 @@ if section_options:
         st.session_state["focus_node_widget"] = default_section
 else:
     st.session_state["focus_node_widget"] = None
+
 focus_node = None
 if section_options:
     focus_node = sidebar.selectbox(
@@ -964,75 +1062,40 @@ if section_options:
         key="focus_node_widget",
     )
 
-scenario_options = visible_scenarios.sort_values("delta_vht_proxy", ascending=False)["scenario_id"].tolist()
-default_scenario = scenario_options[0] if scenario_options else None
-selected_scenario_id = None
-if scenario_options:
-    selected_scenario_id = sidebar.selectbox("Selected scenario", options=scenario_options, index=0)
-
-case_options = case_studies["node_id"].tolist()
-selected_case_node = None
-if case_options:
-    selected_case_node = sidebar.selectbox(
-        "Case-study section",
-        options=case_options,
-        index=0,
-        format_func=lambda node_id: next(
-            (
-                f"{row.node_id} — {row.state_name} — {row.route_key if pd.notna(row.route_key) else 'no route'} — {TREATMENT_LABELS.get(row.treatment_group, row.treatment_group)}"
-                for _, row in case_studies.iterrows()
-                if row["node_id"] == node_id
-            ),
-            node_id,
-        ),
-    )
-
-max_edges = 1200
+max_edges = None
 if advanced_mode:
-    max_edges = sidebar.slider("Maximum edges in web view", min_value=200, max_value=3000, value=1200, step=100)
+    limit_edges = sidebar.toggle(
+        "Limit edges in wide network view",
+        value=False,
+        help="Useful only if the national spider-web view becomes heavy to render.",
+    )
+    if limit_edges:
+        max_edges = sidebar.slider("Maximum rendered edges", min_value=300, max_value=6000, value=2200, step=100)
 
 st.title(APP_TITLE)
-st.caption("A guided dissertation app that explains how asset-level road data were turned into graph-based maintenance insights.")
+st.caption("A streamlined dissertation app showing how asset-level pavement records were turned into network-aware maintenance evidence.")
 
-tabs = st.tabs(
-    [
-        "Road Section Inspector",
-        "Project Story / Overview",
-        "Data Sources",
-        "Graph Construction",
-        "Static Disruption Targets",
-        "Static Graph Model Results",
-        "Temporal Degradation and Treatment Features",
-        "EXPERIMENT_SECTION Treatment Semantics",
-        "Event-Study Findings",
-        "Monthly Climate Findings",
-        "What We Have Learned / Final Conclusions",
-        "Technical Appendix",
-    ]
-)
+tab_labels = ["Road Section Inspector", "From Asset to Network", "Models and Findings"]
+if advanced_mode:
+    tab_labels.append("Technical Appendix")
+tabs = st.tabs(tab_labels)
 
-# Page 1
 with tabs[0]:
     page_intro_box(
         """
-This inspector is the best place to start if you are discovering the project.
+This inspector connects the network back to one real monitored road section.
 
-It connects the **network view** back to one real road section at a time:
-- where the section is located,
-- how its climate and traffic evolved over time,
-- what distress surveys recorded,
-- and what treatment or project history was recorded for it.
+Start here if you want to see **what one node actually is**: where it is, how traffic and climate evolved, what distress surveys recorded, and what treatment or change history was logged for it.
 """
     )
-    show_core_terms_box()
     if not focus_node:
         st.info("No road section is currently available under the selected state filter.")
     else:
         focus_info = nodes[nodes["node_id"] == focus_node].iloc[0]
-        inspector_nodes = visible_nodes if not visible_nodes.empty else nodes
+        inspector_nodes = selected_view_nodes
         inspector_map = draw_node_map(
             inspector_nodes,
-            "Click a road section to inspect it",
+            "Click a point to inspect a road section",
             color_col="project_count",
             highlight_nodes=[focus_node],
             height=720,
@@ -1055,142 +1118,158 @@ It connects the **network view** back to one real road section at a time:
                     st.session_state["pending_focus_node"] = clicked_node
                     st.rerun()
 
-        st.caption("This national map is the main entry point for inspection: click a point to make it the selected road section.")
+        st.caption("The national map is the main entry point for inspection: click a point to make it the selected road section.")
         metric_card_row(
             [
-                ("Road section", str(focus_info["node_id"]), "Selected LTPP road section"),
-                ("State", str(focus_info["state_name"]), "State where the section is located"),
-                ("Route", str(focus_info.get("route_key", "n/a")), "Route or corridor label used in the graph"),
-                ("Functional class", str(focus_info.get("functional_class", "n/a")), "Broad road role, such as interstate-like or arterial-like"),
-                ("Climate grid ID", str(focus_info.get("merra_id", "n/a")), "Identifier of the linked MERRA climate cell"),
-                ("Project records", str(int(focus_info.get("project_count", 0))), "Count of linked project or treatment records"),
+                ("Road section", str(focus_info["node_id"]), "Selected LTPP section identifier."),
+                ("State", str(focus_info["state_name"]), "State where the section is located."),
+                ("Route", str(focus_info.get("route_key", "n/a")), "Route label used for corridor links in the graph."),
+                ("Functional class", str(focus_info.get("functional_class", "n/a")), "Broad road-role category."),
+                ("MERRA grid", str(focus_info.get("merra_id", "n/a")), "Climate grid linked to this section."),
+                ("Project records", str(int(focus_info.get("project_count", 0))), "Number of linked treatment or project records."),
             ]
         )
-        tabs_inspector = st.tabs(["Yearly climate & traffic", "Distress timeline", "Treatment / maintenance"])
+        st.info(
+            """
+**How to read this page**
+
+- **AADT** means *Annual Average Daily Traffic*: the average number of vehicles per day over a given year.
+- **AADTT** means *Annual Average Daily Truck Traffic*: the truck-only version of the same idea.
+- The traffic series are annual records, even though they are expressed as average daily flow.
+- The treatment timeline comes from **EXPERIMENT_SECTION**, so it should be read as broad project/treatment history, not as cracking-only maintenance.
+"""
+        )
+        tabs_inspector = st.tabs(["Yearly climate and traffic", "Distress timeline", "Treatment / change history", "Local neighbourhood"])
         with tabs_inspector[0]:
-            st.info("These yearly series are normalised within the selected section so climate and traffic variables can be compared on the same chart even though they have different units.")
             render_yearly_inspector(focus_node)
         with tabs_inspector[1]:
-            st.info("Distress data come from dated survey rows. In other words, this tab shows when inspectors actually measured cracking and related condition variables.")
             render_distress_inspector(focus_node)
         with tabs_inspector[2]:
-            st.info("Treatment history comes from EXPERIMENT_SECTION and should be interpreted as broader treatment or project history, not as cracking-only maintenance.")
             render_treatment_inspector(focus_node)
-        with st.expander("Show raw section attributes"):
-            st.dataframe(focus_info.to_frame().reset_index().rename(columns={"index": "Field", 0: "Value"}), use_container_width=True, hide_index=True)
+        with tabs_inspector[3]:
+            local_fig = draw_local_network(selected_view_nodes, selected_view_edges, focus_node)
+            st.plotly_chart(local_fig, width="stretch")
+            st.caption("This small neighbourhood view shows only the selected section and its direct graph neighbours in the currently chosen graph variant.")
+        with st.expander("Show curated section metadata"):
+            meta_rows = [
+                ("Node ID", focus_info.get("node_id")),
+                ("State", focus_info.get("state_name")),
+                ("Route key", focus_info.get("route_key")),
+                ("Functional class", focus_info.get("functional_class")),
+                ("Latitude", focus_info.get("latitude")),
+                ("Longitude", focus_info.get("longitude")),
+                ("Number of lanes", focus_info.get("NO_OF_LANES")),
+                ("Section length", focus_info.get("SECTION_LENGTH")),
+                ("Speed limit", focus_info.get("SPEED_LIMIT")),
+                ("MERRA climate grid", focus_info.get("merra_id")),
+            ]
+            meta_df = pd.DataFrame(meta_rows, columns=["Field", "Value"])
+            st.dataframe(meta_df, use_container_width=True, hide_index=True)
+        with st.expander("What the temporal model actually uses"):
+            st.markdown(
+                """
+The temporal model does **not** ingest the full raw `nodes.csv` row.
 
-# Page 2
-with tabs[1]:
-    page_intro_box(
-        """
-This project starts with **individual pavement sections** and builds a **graph**
-to understand how maintenance decisions interact across a network.
+Instead, for a pair **(section, year)** it builds a compact feature vector containing:
+- current cracking,
+- yearly traffic,
+- yearly climate,
+- a few static geometry variables,
+- and, in the treatment-aware version, section and neighbour treatment/project features.
 """
-    )
-    show_core_terms_box()
+            )
+            if not temporal_feature_audit.empty:
+                retained = temporal_feature_audit[temporal_feature_audit["retained"] == 1].copy()
+                retained_view = retained[["feature_name", "feature_family", "train_non_missing_share", "decision_reason"]].copy()
+                retained_view["train_non_missing_share"] = retained_view["train_non_missing_share"].map(lambda v: f"{100.0 * float(v):.1f}%")
+                st.dataframe(retained_view, use_container_width=True, hide_index=True)
+            else:
+                st.info("The feature-audit file is not available yet. Re-run the temporal pipeline to populate it.")
+
+with tabs[1]:
+    st.markdown("## From asset-level records to a network view")
     st.markdown(
         """
-**Project flow**
+We started with **LTPP data**: a long-running US pavement monitoring programme that follows real road sections over time.
 
-`Data` → `Graph` → `Disruption scenarios` → `Models` → `Treatment / event analysis` → `Optimisation next step`
+In the raw data, each section is mostly treated as an **asset-level record**. The main idea of this project is to ask whether that is enough. If a section is closed for treatment, traffic, disruption, and scheduling pressure can spill over to nearby sections or to the same corridor. That is why the project moves **from asset to network**.
 """
     )
-
-    best_static = best_static_rows(graph_variant_comparison)
-    best_delta = best_static.loc[best_static["target"] == "delta_vht_proxy", "gcn_test_r2"]
-    best_disruption = best_static.loc[best_static["target"] == "disruption_score", "gcn_test_r2"]
-    exp_row = treatment_ablation[treatment_ablation["treatment_mode"] == "experiment"].iloc[0]
-    metric_card_row(
-        [
-            ("LTPP road sections", compact_number(len(nodes)), "One node = one LTPP pavement section"),
-            ("MERRA climate coverage", f"{climate_meta['merra_coverage_pct']:.1f}%", "Corrected after SHRP_ID normalisation"),
-            ("Treatment / change events", compact_number(event_interpretation["n_events"]), "Events from EXPERIMENT_SECTION"),
-            ("Best extra travel-time proxy R²", f"{safe_float(best_delta.iloc[0]):.3f}" if not best_delta.empty else "n/a", "Best static graph result"),
-            ("RF local cracking R²", f"{safe_float(exp_row['rf_test_r2']):.3f}", "Best local one-year cracking predictor"),
-            ("GCN with treatment features R²", f"{safe_float(exp_row['gcn_with_project_treatment_test_r2']):.3f}", "Temporal graph model with EXPERIMENT_SECTION features"),
-        ]
-    )
-
-    edge_summary = graph_diag[["graph_variant", "edges"]].copy()
-    edge_summary["Variant"] = edge_summary["graph_variant"].map(GRAPH_VARIANTS)
-    edge_summary["Edges"] = edge_summary["edges"]
-    fig_edges = px.bar(edge_summary, x="Variant", y="Edges", title="How many section-to-section relationships are in each graph variant?")
-    st.plotly_chart(fig_edges, use_container_width=True)
-
-    overview_map = draw_node_map(
-        visible_nodes if not visible_nodes.empty else nodes,
-        title="National view of road sections",
-        color_col="project_count",
-        highlight_nodes=scenario_nodes(
-            visible_scenarios.loc[visible_scenarios["scenario_id"] == selected_scenario_id, "closed_node_ids"].iloc[0]
-        ) if selected_scenario_id else None,
-    )
-    st.plotly_chart(overview_map, use_container_width=True)
-
-    st.success(
-        """
-**Current conclusion**
-
-- RF is best for local cracking prediction.
-- The full refined graph now performs best for most static disruption proxies, while the spatial graph remains best for disconnected trip-pair share.
-- EXPERIMENT_SECTION treatment features clearly improve the temporal GCN.
-- Monthly climate helps explain treatment categories, but not the main cracking model.
-- Graph-aware maintenance portfolio optimisation is the next required step.
-"""
-    )
-
-# Page 3
-with tabs[2]:
-    page_intro_box("This page explains what each dataset contributes to the overall pipeline.")
-    show_core_terms_box()
-    data_source_table = pd.DataFrame(
-        [
-            ["General Section Info.xlsx", "Section metadata, route context, construction and treatment history", "Defines sections, route context, and treatment / experiment history"],
-            ["Analysis Ready Distress.xlsx", "Cracking and other pavement condition indicators", "Used for pre/post treatment analysis and one-year cracking prediction"],
-            ["Annual Traffic Inputs Over Time.xlsx", "Annual truck traffic, AADT-style loading, ESAL/GESAL", "Defines section importance and annual traffic context"],
-            ["MERRA annual climate files", "Annual temperature, humidity, precipitation, wind, and solar summaries", "Used in graph features and annual temporal modelling"],
-            ["MERRA monthly climate files", "Monthly climate time series", "Used only for seasonal and extreme event-study climate summaries"],
-            ["EXPERIMENT_SECTION", "Treatment/change events with dates and reason labels", "Main source for treatment semantics and treatment-aware temporal features"],
-            ["graph_data/nodes.csv", "Prepared section-level node table", "Main node table for the graph and visualisation"],
-            ["graph_data/edges.csv", "Prepared structural relationships between sections", "Defines graph topology variants"],
-        ],
-        columns=["Data source", "What it contains", "How it is used"],
-    )
-    st.dataframe(data_source_table, use_container_width=True, hide_index=True)
     st.info(
         """
-**How to read the data**
+**Simple definitions**
 
-- **Distress** means pavement condition, especially cracking.
-- **Traffic** means annual loading and section importance.
-- **Climate** means environmental exposure.
-- **Coordinates and routes** are what allow the graph to be built.
+- A **node** is one LTPP road section.
+- An **edge** is one plausible relationship between two sections.
+- A **graph** is the collection of those nodes and edges.
+- In this project, the graph is not a perfect operational road map of the whole US. It is a **section-level interdependency graph** designed to test whether maintenance relationships matter.
 """
     )
-    st.warning(
-        "Traffic is annual, not monthly. Therefore, the project estimates potential disruption using graph-based proxies rather than observed short-term traffic diversion."
-    )
 
-# Page 4
-with tabs[3]:
-    page_intro_box(
-        """
-The project uses a **section-level interdependency graph**, not a full national operational road network.
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("### Why asset-level modelling is incomplete")
+        st.markdown(
+            """
+An asset-level model treats each section independently. That is useful for local condition prediction, but it misses questions like:
 
-- **One node = one LTPP pavement section**
-- **One edge = one plausible interdependency between two sections**
+- could closing section **A** affect traffic or disruption on **B**?
+- are **A** and **B** on the same corridor, so scheduling them together is risky?
+- do neighbouring treatments carry information about what will happen next on section **A**?
 """
-    )
+        )
+    with c2:
+        st.markdown("### What the network adds")
+        st.markdown(
+            """
+The graph adds three relationship layers:
+
+- **Spatial**: sections that are geographically close.
+- **Same route / corridor**: sections on the same named route corridor.
+- **Same functional class**: sections with similar road role in the same state.
+
+These edges are hypotheses about interdependence. The rest of the analysis tests whether those hypotheses are useful and plausible.
+"""
+        )
+
+    current_diag = graph_diag[graph_diag["graph_variant"] == graph_variant].iloc[0]
+    total_projects = int(projects.shape[0])
     metric_card_row(
         [
-            ("Visible road sections", compact_number(len(visible_nodes) if not visible_nodes.empty else len(nodes)), "Filtered by the current state selection"),
-            ("Visible relationships", compact_number(len(visible_edges)), "Edges where both end nodes pass the state filter"),
-            ("Selected states", str(len(selected_states)) if selected_states else "All", "How much of the map is currently visible"),
-            ("Largest local component", compact_number(graph_diag.loc[graph_diag["graph_variant"] == graph_variant, "largest_component_nodes"].iloc[0]), "Largest connected set of sections"),
+            ("Road sections", compact_number(len(nodes)), "All LTPP sections that became graph nodes."),
+            ("Project / treatment rows", compact_number(total_projects), "Prepared treatment or project records linked to nodes."),
+            ("Current visible edges", compact_number(len(selected_view_edges)), "Edges visible after the current graph-variant and state filter."),
+            ("Largest component share", f"{safe_float(current_diag['largest_component_share_pct']):.1f}%", "How much of the current graph sits in the biggest connected component."),
         ]
     )
 
-    st.markdown("### Graph variants")
+    st.markdown("### The three graph variants")
+    parameter_rows = [
+        {
+            "Graph variant": "Spatial only",
+            "Edge families used": "spatial",
+            "k / sparsity rule": "Each section proposes up to 8 nearest spatial neighbours",
+            "Distance rule": "Spatial candidates allowed up to 80 km",
+            "Extra rule": "Undirected graph after symmetrising neighbour choices",
+        },
+        {
+            "Graph variant": "Spatial + Route",
+            "Edge families used": "spatial + same_route",
+            "k / sparsity rule": "Spatial layer as above; route links connect adjacent sections along the same route ordering",
+            "Distance rule": "Spatial <= 80 km; same-route links <= 100 km",
+            "Extra rule": "Adds corridor continuity on top of local spatial links",
+        },
+        {
+            "Graph variant": "Full refined",
+            "Edge families used": "spatial + same_route + same_functional_class",
+            "k / sparsity rule": "Same-class layer keeps the top 5 scored candidates per source section",
+            "Distance rule": "Spatial <= 80 km; same-route <= 100 km; same-class candidates <= 80 km",
+            "Extra rule": "Same-class score = 0.40 spatial + 0.15 traffic + 0.20 climate + 0.25 pavement similarity",
+        },
+    ]
+    st.dataframe(pd.DataFrame(parameter_rows), use_container_width=True, hide_index=True)
+    st.caption("These are the graph-construction parameters from graph_construction.py, not display settings from the app.")
+
     variant_table = graph_diag.copy()
     variant_table["Graph variant"] = variant_table["graph_variant"].map(GRAPH_VARIANTS)
     variant_table = variant_table.rename(
@@ -1204,497 +1283,745 @@ The project uses a **section-level interdependency graph**, not a full national 
         }
     )
     st.dataframe(
-        variant_table[
-            ["Graph variant", "Nodes", "Edges", "Average degree", "Isolated nodes", "Connected components", "Largest component share (%)"]
-        ],
+        variant_table[["Graph variant", "Nodes", "Edges", "Average degree", "Isolated nodes", "Connected components", "Largest component share (%)"]],
         use_container_width=True,
         hide_index=True,
     )
-
-    st.info(
-        f"""
-**What is currently displayed**
-
-- **Graph variant:** {GRAPH_VARIANTS[graph_variant]}
-- **Meaning:** {GRAPH_VARIANT_STORY[graph_variant]}
-- **State filter:** {', '.join(selected_state_labels) if selected_state_labels else 'All states'}
-- **Interpretation:** the LTPP sections form many **local interdependency networks**, not one complete national road network.
-"""
-    )
-
-    selected_view_nodes = visible_nodes if not visible_nodes.empty else nodes
-    st.plotly_chart(
-        draw_network_web(
-            selected_view_nodes,
-            visible_edges,
-            "Spider-web view of the selected graph",
-            focus_node=focus_node,
-            max_edges=max_edges,
-            color_by_cluster=False,
-            height=760,
-        ),
-        width="stretch",
-        key="graph_construction_web",
-    )
-    st.caption("This view drops the basemap and emphasises the actual graph relationships between the visible sections.")
-
-    st.plotly_chart(
-        draw_cluster_map(
-            selected_view_nodes,
-            visible_edges,
-            "Cluster view of the selected graph",
-            height=760,
-        ),
-        width="stretch",
-        key="graph_construction_clusters",
-    )
-    st.caption("Each colour corresponds to one connected local cluster of road sections in the currently selected graph and state filter.")
-
-    with st.expander("Show raw graph diagnostics"):
-        st.dataframe(graph_diag, use_container_width=True)
-        st.dataframe(graph_distance, use_container_width=True)
-
-# Page 5
-with tabs[4]:
-    page_intro_box(
-        """
-The static disruption model does **not** use observed traffic assignment. It uses **synthetic graph-based target variables**
-to estimate how disruptive a set of simultaneous section closures could be.
-"""
-    )
     st.info(
         """
-**Key terms on this page**
+**What these names mean**
 
-- **Origin-destination pair (OD pair)**: a possible trip from one important road section to another.
-- **Shortest path**: the quickest available route through the graph.
-- **Proxy**: a synthetic indicator used because observed short-term diversion traffic is not available in the dataset.
+- **Spatial only**: local geographic proximity only.
+- **Spatial + Route**: spatial links plus route-continuity corridor links.
+- **Full refined**: spatial + corridor + a sparse filtered similarity layer.
+
+A richer graph is not automatically a better graph. The point is to test which representation is most useful for each modelling task.
 """
     )
-    st.markdown("### Target definitions")
-    st.latex(r"\Delta VHT_{proxy} = \sum_{od} \left[w_{od} \times \max(T_1 - T_0, 0)\right] \quad \text{if connected}")
-    st.latex(r"\Delta VHT_{proxy} = \sum_{od} \left[w_{od} \times 4 \times T_0\right] \quad \text{if disconnected}")
-    st.latex(r"L_{conn} = 1 - \frac{A^{max}_1}{A^{max}_0}")
-    st.latex(r"D_{OD} = \frac{\sum w_{od} I_{disconnected}}{\sum w_{od}}")
-    st.latex(r"S = \Delta VHT_{proxy} \times (1 + L_{conn} + D_{OD})")
 
+    st.markdown("### How the full refined similarity score is built")
     st.markdown(
         """
-- **T0** = baseline shortest-path travel time
-- **T1** = post-closure shortest-path travel time
-- **w_od** = weight of one origin-destination pair, so more important trips count more heavily
-- **A0_max** = baseline largest connected component asset weight
-- **A1_max** = post-closure largest connected component asset weight
+For the extra **same functional class** edges in the **full refined** graph, the code does **not** use a hard threshold like `score > 0.60`.
+
+Instead, it works in two steps:
+
+1. **Candidate filter**
+- same **state**
+- same **functional class**
+- within **80 km** great-circle distance
+
+2. **Top-k acceptance rule**
+- compute a similarity score for each candidate pair
+- keep the **top 5 highest-scoring neighbours** for each source section
+
+So the acceptance rule is:
+
+`candidate is accepted if it is among the 5 best-scoring same-class candidates within 80 km`
+"""
+    )
+    st.code(
+        """spatial_score = exp(- distance_km / 80)
+score = 0.40 * spatial_score \
+      + 0.15 * traffic_similarity \
+      + 0.20 * climate_similarity \
+      + 0.25 * pavement_similarity""",
+        language="text",
+    )
+    st.info(
+        """
+**How to read the formula**
+
+- **Spatial score** gets larger when two sections are closer together.
+- **Traffic similarity** compares their traffic profiles.
+- **Climate similarity** compares their climate exposure.
+- **Pavement similarity** compares their structural road attributes such as lanes, width, and section length.
+- The weights sum to **1.00**, so the score is a weighted average.
+
+This means the `full refined` graph is still mostly local, because distance carries the biggest single weight and candidates beyond 80 km are excluded before scoring.
 """
     )
 
-    defs = static_target_defs.copy()
-    defs["Target"] = defs["target_variable"].map(lambda x: FRIENDLY_TARGETS.get(x, x))
-    defs["Meaning"] = defs["plain_english"]
-    defs["Formula"] = defs["formula"]
-    st.dataframe(defs[["Target", "Formula", "Meaning", "higher_means", "observed_or_proxy"]], use_container_width=True, hide_index=True)
+    edge_summary = graph_diag[["graph_variant", "edges"]].copy()
+    edge_summary["Graph variant"] = edge_summary["graph_variant"].map(GRAPH_VARIANTS)
+    fig_edges = px.bar(edge_summary, x="Graph variant", y="edges", title="How many relationships does each graph variant contain?", labels={"edges": "Edges"})
+    st.plotly_chart(fig_edges, width="stretch")
 
-    st.warning("These are synthetic graph-based proxies, not observed traffic impacts.")
-
-    st.markdown("### Worked scenario example")
-    summary_example = static_target_worked[static_target_worked["row_type"] == "scenario_summary"].copy()
-    if not summary_example.empty:
-        row = summary_example.iloc[0]
-        metric_card_row(
-            [
-                ("Scenario", str(row["scenario_id"]), "Worked example from the stored scenario outputs"),
-                ("Closed nodes", str(row["closed_node_ids"]), "Sections removed from the residual graph"),
-                ("Extra travel-time proxy", compact_number(row["delta_vht_proxy"]), "Synthetic extra travel penalty"),
-                ("Connectivity loss share", f"{safe_float(row['connectivity_loss_pct']):.4f}", "Largest-component asset loss"),
-                ("Disconnected origin-destination share", f"{safe_float(row['disconnected_od_pct']):.4f}", "Weighted share of unreachable origin-destination pairs"),
-                ("Overall disruption score", compact_number(row["disruption_score"]), "Composite disruption proxy"),
-            ]
+    st.markdown("### National graph view")
+    corridor_distance_default = 20
+    show_long_corridors = st.toggle(
+        "Show long-range corridor membership links",
+        value=False,
+        help="Turn this on only if you want to see every same-route link, including very long corridor links that are not local neighbours.",
+        key="show_long_corridors_main",
+    )
+    corridor_distance_km = corridor_distance_default
+    if advanced_mode:
+        corridor_distance_km = st.slider(
+            "If long corridor links are hidden, keep corridor edges up to this distance (km)",
+            min_value=5,
+            max_value=80,
+            value=20,
+            step=5,
         )
-    top_pairs = static_target_worked[static_target_worked["row_type"] == "top_affected_od_pairs"].copy()
-    if not top_pairs.empty:
+
+    web_edges = selected_view_edges.copy()
+    hidden_corridor_count = 0
+    if not show_long_corridors and not web_edges.empty and {"edge_role", "distance_km"}.issubset(web_edges.columns):
+        web_edges["distance_km"] = pd.to_numeric(web_edges["distance_km"], errors="coerce")
+        hide_mask = web_edges["edge_role"].eq("corridor") & web_edges["distance_km"].gt(corridor_distance_km)
+        hidden_corridor_count = int(hide_mask.sum())
+        web_edges = web_edges[~hide_mask].copy()
+
+    visible_graph = nx.Graph()
+    visible_graph.add_nodes_from(selected_view_nodes["node_id"].astype(str).tolist())
+    if not web_edges.empty:
+        visible_graph.add_edges_from(web_edges[["source", "target"]].astype(str).itertuples(index=False, name=None))
+    visible_isolated = sum(1 for _, degree in visible_graph.degree() if degree == 0)
+    role_counts = web_edges["edge_role"].value_counts().to_dict() if "edge_role" in web_edges.columns else {}
+    spatial_count = int(role_counts.get("spatial", 0))
+    corridor_count = int(role_counts.get("corridor", 0))
+    diversion_count = int(role_counts.get("diversion", 0))
+
+    metric_card_row(
+        [
+            ("Rendered edges", str(len(web_edges) if max_edges is None else min(len(web_edges), max_edges)), "Edges actually drawn in the spider-web view."),
+            ("Spatial links", str(spatial_count), "Nearby-section links currently visible."),
+            ("Corridor links", str(corridor_count), "Same-route links currently visible."),
+            ("Hidden long corridor links", str(hidden_corridor_count), "Long same-route links hidden from the main view because they are corridor membership rather than local neighbourhood."),
+            ("Isolated visible sections", str(visible_isolated), "Visible sections with no remaining edge in the current view."),
+        ]
+    )
+    st.info(
+        f"""
+**How to read the spider-web view**
+
+- **Blue** = local spatial links.
+- **Red** = corridor links along the same route.
+- **Green** = diversion-style links, if present in the selected graph variant.
+- **Grey dots** = road sections.
+- **Gold star** = the currently selected section.
+
+The default view hides corridor links longer than **{corridor_distance_km} km** because the OSM audit showed that many long same-route links are better interpreted as **corridor membership**, not as **local neighbours**.
+"""
+    )
+    web_fig = draw_network_web(
+        selected_view_nodes,
+        web_edges,
+        title="Spider-web view of the selected graph",
+        focus_node=focus_node,
+        max_edges=max_edges,
+    )
+    st.plotly_chart(web_fig, width="stretch")
+
+    cluster_fig = draw_cluster_map(
+        selected_view_nodes,
+        web_edges,
+        title="Connected local clusters in the current filtered graph",
+    )
+    st.plotly_chart(cluster_fig, width="stretch")
+    st.caption("The graph should usually be read as many local interdependency clusters rather than one seamless national road network.")
+
+    st.markdown("### Does the graph match a real road map?")
+    supported_edges = int(osm_topology_status.loc[osm_topology_status["topology_level"] == "supported", "edges"].sum())
+    weak_edges = int(osm_topology_status.loc[osm_topology_status["topology_level"] == "weakly_connected", "edges"].sum())
+    disconnected_edges = int(osm_topology_status.loc[osm_topology_status["topology_level"] == "not_connected", "edges"].sum())
+    total_tested_edges = int(osm_topology_status["edges"].sum())
+    plausible_pct = (100.0 * supported_edges / total_tested_edges) if total_tested_edges else float("nan")
+
+    same_route_long_total = int(same_route_real_axis_summary["edges"].sum())
+    same_route_supported_total = int(same_route_real_axis_summary.loc[same_route_real_axis_summary["real_axis_verdict"] == "same_real_axis_supported", "edges"].sum())
+    same_route_not_supported = int(same_route_real_axis_summary.loc[same_route_real_axis_summary["real_axis_verdict"] == "not_supported", "edges"].sum())
+    local_same_route_share = float(
+        same_route_edge_suspects_summary.loc[
+            same_route_edge_suspects_summary["suspicious_locality"].isin(["very_local", "local"]),
+            "share_pct",
+        ].sum()
+    )
+
+    metric_card_row(
+        [
+            ("Locally audited edges", str(total_tested_edges), "Edges checked against compact OSM road subgraphs."),
+            ("Plausible local edges", f"{plausible_pct:.1f}%", "Edges on the same OSM segment or connected by a short / reasonable road path."),
+            ("Long same-route edges audited", str(same_route_long_total), "Targeted audit of corridor links longer than 30 km."),
+            ("Long same-route edges still on the same real axis", str(same_route_supported_total), "Long corridor links that still look like the same real road corridor on OSM."),
+            ("Long same-route edges not supported", str(same_route_not_supported), "Long corridor links that look doubtful on the real map."),
+            ("Same-route edges under 10 km", f"{local_same_route_share:.1f}%", "Most corridor links are actually short and local; only a small tail is suspicious."),
+        ]
+    )
+    st.info(
+        """
+**OSM interpretation**
+
+Two different OSM checks were useful here:
+
+1. **Local edge plausibility audit**: on compact local components, most tested graph edges were topologically plausible on a real road map.
+2. **Long same-route corridor audit**: most very long same-route links still look like the same corridor in OSM, but they should be read as **same corridor membership**, not as **local neighbouring sections**.
+
+This matters because a line that crosses a large part of the country may still belong to the same named route, but it does **not** mean a closure in one place creates an immediate local impact everywhere else along that route.
+"""
+    )
+
+    axis_view = same_route_real_axis_summary.copy()
+    axis_view["Verdict"] = axis_view["real_axis_verdict"].replace(
+        {
+            "same_real_axis_supported": "Same real axis supported",
+            "connected_but_far": "Connected but far",
+            "not_supported": "Not supported",
+            "needs_manual_map_check": "Needs manual map check",
+        }
+    )
+    fig_axis = px.bar(
+        axis_view,
+        x="Verdict",
+        y="edges",
+        color="local_neighbour_verdict",
+        title="Audit of long same-route links against OpenStreetMap",
+        labels={"edges": "Edges", "local_neighbour_verdict": "Neighbour interpretation"},
+    )
+    st.plotly_chart(fig_axis, width="stretch")
+
+    st.markdown("### Do connected sections also evolve similarly?")
+    st.info(
+        """
+This is a **different validation question** from OSM.
+
+- **OSM validation** asks: *are these edges physically/topologically plausible on a real road map?*
+- **Cracking-correlation validation** asks: *do linked sections empirically move together over time in the distress data?*
+
+An edge can be topologically plausible but only weakly correlated in cracking evolution, because pavement deterioration also depends on materials, maintenance timing, trucks, and local conditions. So these two checks are **complementary**, not contradictory.
+"""
+    )
+    if not cracking_corr_by_edge.empty:
+        corr_view = cracking_corr_by_edge.copy()
+        corr_view["Edge type"] = corr_view["edge_type"].replace(
+            {
+                "spatial": "Spatial",
+                "same_route": "Same route",
+                "same_functional_class": "Same functional class",
+            }
+        )
         st.dataframe(
-            top_pairs[
-                [
-                    "origin",
-                    "destination",
-                    "base_travel_time_hours",
-                    "new_travel_time_hours",
-                    "od_weight",
-                    "od_disconnected",
-                    "od_penalty_hours",
-                ]
-            ].head(15),
+            corr_view[[
+                "Edge type",
+                "tested_edges",
+                "edges_with_change_corr",
+                "median_change_corr",
+                "mean_change_corr",
+                "median_level_corr",
+                "mean_level_corr",
+                "median_distance_km",
+            ]],
             use_container_width=True,
             hide_index=True,
         )
+        fig_corr = px.bar(
+            corr_view,
+            x="Edge type",
+            y=["median_change_corr", "median_level_corr"],
+            barmode="group",
+            title="Do linked sections have correlated cracking levels and cracking changes?",
+            labels={"value": "Median correlation", "variable": "Correlation type"},
+        )
+        st.plotly_chart(fig_corr, width="stretch")
+    if not cracking_corr_spatial_bins.empty:
+        bin_view = cracking_corr_spatial_bins.copy().rename(columns={"distance_bin": "Spatial distance bin"})
+        fig_spatial_corr = px.bar(
+            bin_view,
+            x="Spatial distance bin",
+            y="median_change_corr",
+            text="edges",
+            title="For spatial links, cracking-change similarity is strongest at short distance",
+            labels={"median_change_corr": "Median cracking-change correlation", "edges": "Edges"},
+        )
+        st.plotly_chart(fig_spatial_corr, width="stretch")
+    st.success(
+        """
+**How to reconcile OSM and cracking correlation**
+
+- OSM says whether an edge is **physically plausible** as a route or local connection.
+- Cracking correlation says whether linked sections **behave similarly** in the distress data.
+- The current evidence suggests that many graph edges are topologically plausible, while the **strongest empirical co-movement appears for short-distance links**.
+
+So the graph is not invalidated by the correlation results. Instead, the correlation results help us say **which kinds of edges are more behaviourally convincing**, especially for local propagation arguments.
+"""
+    )
+
+with tabs[2]:
+    st.markdown("## Models and findings")
+    st.markdown(
+        """
+This project used **supervised learning**: the models are shown examples with inputs and the correct observed outputs, then learn to predict those outputs for unseen examples.
+
+There are **two different modelling tasks**, so not every R² in the project measures the same thing:
+
+- a **static disruption task**: predict the impact of a hypothetical outage scenario on the network,
+- a **temporal deterioration task**: predict next-year cracking for one section.
+"""
+    )
     st.info(
         """
-**What this means**
+**Quick glossary**
 
-The static model learns how closure combinations affect a **synthetic, demand-weighted set of important OD pairs**.
-This makes the targets defensible as disruption proxies, but they should not be described as observed traffic impacts.
+- **Ridge**: a simple linear baseline with regularisation.
+- **RF (Random Forest)**: a strong non-graph baseline that uses section-level features only.
+- **GCN**: a Graph Convolutional Network; it lets neighbouring nodes share information.
+- **R-GCN**: a relation-aware GCN that treats different edge types differently instead of blending them all together.
+- **OOD**: out-of-distribution validation, here meaning tests on held-out states that were not used for training.
+- **OSM**: OpenStreetMap, used here to check whether graph links look plausible on a real road map.
 """
     )
 
-# Page 6
-with tabs[5]:
-    page_intro_box(
+    st.markdown("### 1. What exactly is being predicted?")
+    task_cols = st.columns(2)
+    with task_cols[0]:
+        st.markdown(
+            """
+#### Static disruption models
+
+**Question**: if these road sections are closed at the same time, how much disruption does the network experience?
+
+**Input**:
+- a graph variant,
+- a synthetic outage scenario saying which sections are closed,
+- node attributes from the graph.
+
+**Output**:
+- extra travel-time proxy,
+- connectivity loss share,
+- disconnected OD share,
+- overall disruption score.
+"""
+        )
+    with task_cols[1]:
+        st.markdown(
+            """
+#### Temporal deterioration models
+
+**Question**: given what section **A** and its neighbours looked like in year **t**, what will the cracking of **A** look like in **t+1**?
+
+**Input**:
+- local section features at year **t**,
+- graph neighbours of that section,
+- optionally treatment/project context from **EXPERIMENT_SECTION**.
+
+**Output**:
+- next-year cracking percentage for the selected pavement measure.
+"""
+        )
+
+    st.warning(
+        "We predict next-year cracking in the temporal task because it is an observed section-level deterioration target. That is not the same as directly predicting whether a project will happen, which would be a separate classification problem."
+    )
+    st.info(
         """
-The static graph model learns:
+**Two important clarifications**
 
-**scenario + graph + section features → predicted network disruption**
+- When the model predicts **cracking at t+1**, it is evaluated against the **real recorded cracking value** observed for that section in the next year of the distress panel.
+- The features do **not** all receive the same weight. After scaling and imputation, each model learns its own importance pattern: Ridge learns linear coefficients, Random Forest learns split importance, and GCN learns feature transformations plus neighbour propagation weights.
 """
     )
-    static_table = build_static_result_table(graph_variant_comparison)
-    st.dataframe(static_table, use_container_width=True, hide_index=True)
 
+    latest_experiment = treatment_ablation[treatment_ablation["treatment_mode"] == "experiment"].iloc[0]
+    latest_none = treatment_ablation[treatment_ablation["treatment_mode"] == "none"].iloc[0]
+    best_rgcn_row = part1_rgcn.sort_values("test_r2", ascending=False).iloc[0]
+
+    st.markdown("### 2. Shared temporal pipeline")
+    st.markdown(
+        """
+All temporal models in this page start from the **same section-year panel**.
+
+The shared pipeline is:
+1. build one row for each **(road section, year)**,
+2. merge in observed **cracking at year t**, yearly **traffic**, yearly **climate**, and a few **static geometry** variables,
+3. optionally merge **EXPERIMENT_SECTION** treatment/project features,
+4. define the target as **cracking at year t+1**, using the real next observed annual value,
+5. split the panel by year into **train / validation / test**,
+6. impute missing numeric values with the **training median** and standardise features using the **training split only**.
+
+So yes: the temporal models are broadly using the **same pipeline** and the **same prediction target**. What changes between them is the model class and, in some cases, whether treatment/project features are included.
+"""
+    )
+    pipeline_table = pd.DataFrame(
+        [
+            ["Ridge", "No graph", "Same next-year cracking target", "Linear baseline on local features only"],
+            ["Random Forest", "No graph", "Same next-year cracking target", "Tree ensemble on local features only"],
+            ["GCN without treatment/project features", f"Graph-aware; current app view focuses on {GRAPH_VARIANTS[graph_variant]}", "Same next-year cracking target", "Graph propagation, but with the reduced feature set"],
+            ["GCN with EXPERIMENT_SECTION features", f"Graph-aware; current app view focuses on {GRAPH_VARIANTS[graph_variant]}", "Same next-year cracking target", "Graph propagation plus treatment/project context"],
+            ["R-GCN", "Reported separately for spatial, spatial + route, and full refined", "Same next-year cracking target", "Same inputs as graph models, but relation-specific message passing"],
+            ["GCN+LSTM", f"Graph-aware; current app view focuses on {GRAPH_VARIANTS[graph_variant]}", "Same next-year cracking target", "Same graph snapshots, but read as a short 3-year sequence"],
+        ],
+        columns=["Model", "Graph used for the reported R²", "Output target", "What changes"],
+    )
+    st.dataframe(pipeline_table, use_container_width=True, hide_index=True)
+
+    st.markdown("### 3. Temporal models: local prediction versus relational signal")
+    temporal_recap = pd.DataFrame(
+        [
+            {
+                "Model": "Ridge temporal baseline",
+                "Input": "Local section features only",
+                "Output": "Next-year cracking",
+                "Why it matters": "Simple linear asset-level baseline.",
+                "Test R²": latest_experiment["ridge_test_r2"],
+            },
+            {
+                "Model": "RF local",
+                "Input": "Local section features only",
+                "Output": "Next-year cracking",
+                "Why it matters": "Best pure asset-level predictor in the project.",
+                "Test R²": latest_experiment["rf_test_r2"],
+            },
+            {
+                "Model": "GCN without project/treatment features",
+                "Input": "Graph neighbours + local section features, but no treatment/project context",
+                "Output": "Next-year cracking",
+                "Why it matters": "Tests whether graph structure alone is enough.",
+                "Test R²": latest_experiment["gcn_without_project_treatment_test_r2"],
+            },
+            {
+                "Model": "GCN with EXPERIMENT_SECTION treatment features",
+                "Input": "Graph neighbours + local section features + treatment/project context",
+                "Output": "Next-year cracking",
+                "Why it matters": "Main evidence that neighbour treatment history carries signal.",
+                "Test R²": latest_experiment["gcn_with_project_treatment_test_r2"],
+            },
+            {
+                "Model": "Best relation-aware graph model (R-GCN)",
+                "Input": "Graph neighbours, local features, and relation-specific message passing",
+                "Output": "Next-year cracking",
+                "Why it matters": "Tests whether distinguishing spatial, route, and class links helps.",
+                "Test R²": best_rgcn_row["test_r2"],
+            },
+        ]
+    )
+    st.dataframe(temporal_recap, use_container_width=True, hide_index=True)
+
+    metric_card_row(
+        [
+            ("RF local R²", f"{safe_float(latest_experiment['rf_test_r2']):.3f}", "Best absolute temporal predictor using only section-level features."),
+            ("GCN without treatment features", f"{safe_float(latest_experiment['gcn_without_project_treatment_test_r2']):.3f}", "Graph structure plus neighbours, but no treatment/project semantics."),
+            ("GCN with EXPERIMENT_SECTION features", f"{safe_float(latest_experiment['gcn_with_project_treatment_test_r2']):.3f}", "Same graph model after adding treatment/project context."),
+            ("Gain from treatment/project context", f"{safe_float(latest_experiment['gcn_project_treatment_r2_gain']):.3f}", "The relational gain that appears when neighbour treatment history is added."),
+            ("Best R-GCN R²", f"{safe_float(best_rgcn_row['test_r2']):.3f}", "Strongest relation-aware temporal graph result."),
+        ]
+    )
+
+    temporal_bar = pd.DataFrame(
+        {
+            "Model": [
+                "Ridge temporal baseline",
+                "RF local",
+                "GCN without treatment/project features",
+                "GCN with EXPERIMENT_SECTION features",
+            ],
+            "Test R²": [
+                latest_experiment["ridge_test_r2"],
+                latest_experiment["rf_test_r2"],
+                latest_experiment["gcn_without_project_treatment_test_r2"],
+                latest_experiment["gcn_with_project_treatment_test_r2"],
+            ],
+        }
+    )
+    fig_temp = px.bar(temporal_bar, x="Model", y="Test R²", title="Temporal prediction of next-year cracking")
+    st.plotly_chart(fig_temp, width="stretch")
+
+    temporal_variant_rows = graph_variant_comparison[
+        graph_variant_comparison["model_family"] == "temporal"
+    ].copy()
+    temporal_variant_long = temporal_variant_rows.melt(
+        id_vars=["graph_variant"],
+        value_vars=[
+            "ridge_test_r2",
+            "rf_test_r2",
+            "gcn_without_maint_r2",
+            "gcn_with_maint_r2",
+        ],
+        var_name="metric",
+        value_name="test_r2",
+    )
+    temporal_variant_long["Model"] = temporal_variant_long["metric"].replace(
+        {
+            "ridge_test_r2": "Ridge temporal baseline",
+            "rf_test_r2": "RF local",
+            "gcn_without_maint_r2": "GCN without treatment/project features",
+            "gcn_with_maint_r2": "GCN with EXPERIMENT_SECTION features",
+        }
+    )
+    temporal_variant_long["Graph variant"] = temporal_variant_long["graph_variant"].map(GRAPH_VARIANTS)
+
+    rgcn_long = part1_rgcn.copy()
+    rgcn_long["Model"] = "Best relation-aware graph model (R-GCN)"
+    rgcn_long["Graph variant"] = rgcn_long["graph_variant"].map(GRAPH_VARIANTS)
+    rgcn_long = rgcn_long.rename(columns={"test_r2": "test_r2"})[["Model", "Graph variant", "test_r2"]]
+
+    temporal_variant_long = temporal_variant_long[["Model", "Graph variant", "test_r2"]]
+    temporal_compare_long = pd.concat([temporal_variant_long, rgcn_long], ignore_index=True)
+    model_order = [
+        "Ridge temporal baseline",
+        "RF local",
+        "GCN without treatment/project features",
+        "GCN with EXPERIMENT_SECTION features",
+        "Best relation-aware graph model (R-GCN)",
+    ]
+    graph_order = [GRAPH_VARIANTS[key] for key in GRAPH_VARIANTS]
+    temporal_compare_long["Model"] = pd.Categorical(
+        temporal_compare_long["Model"], categories=model_order, ordered=True
+    )
+    temporal_compare_long["Graph variant"] = pd.Categorical(
+        temporal_compare_long["Graph variant"], categories=graph_order, ordered=True
+    )
+    fig_temp_variants = px.bar(
+        temporal_compare_long.sort_values(["Model", "Graph variant"]),
+        x="Model",
+        y="test_r2",
+        color="Graph variant",
+        barmode="group",
+        title="Temporal R² by model and graph variant",
+        labels={"test_r2": "Test R²"},
+    )
+    st.plotly_chart(fig_temp_variants, width="stretch")
+    st.caption(
+        "This grouped view is the easiest way to compare three graph variants side by side. "
+        "Each model gets three bars: Spatial only, Spatial + Route, and Full refined. "
+        "Ridge and RF do not perform graph message passing, so their scores vary only slightly across graph variants. "
+        "The vanilla GCN per-variant rows come from `graph_variant_model_comparison.csv`, while the relation-aware rows come from `part1_rgcn_temporal.csv`."
+    )
+
+    if temporal_feature_audit_summary:
+        metric_card_row(
+            [
+                ("Retained temporal features", str(temporal_feature_audit_summary.get("retained_features", "n/a")), "Features kept after checking missingness, variance, and explicit exclusions."),
+                ("Dropped temporal features", str(temporal_feature_audit_summary.get("dropped_features", "n/a")), "Features removed before training."),
+                ("Dropped for missingness", str(temporal_feature_audit_summary.get("dropped_due_to_missingness", "n/a")), "Too few training transitions had usable values."),
+                ("Dropped explicitly", str(temporal_feature_audit_summary.get("dropped_explicitly", "n/a")), "Features excluded on modelling grounds rather than because of missingness."),
+            ]
+        )
+    if not temporal_feature_audit.empty:
+        st.markdown("#### Which temporal features were actually kept?")
+        audit_view = temporal_feature_audit.copy()
+        audit_view["Retained"] = audit_view["retained"].map({1: "Yes", 0: "No"})
+        audit_view["Train non-missing share"] = audit_view["train_non_missing_share"].map(lambda v: f"{100.0 * float(v):.1f}%")
+        st.dataframe(
+            audit_view[["feature_name", "feature_family", "Retained", "Train non-missing share", "decision_reason"]],
+            use_container_width=True,
+            hide_index=True,
+        )
+
+    rgcn_view = part1_rgcn.copy()
+    rgcn_view["Graph variant"] = rgcn_view["graph_variant"].map(GRAPH_VARIANTS)
+    rgcn_view["Relations used"] = rgcn_view["relations"]
+    fig_rgcn = px.bar(
+        rgcn_view,
+        x="Graph variant",
+        y="test_r2",
+        color="Relations used",
+        title="Does a relation-aware graph model help?",
+        labels={"test_r2": "Test R²"},
+    )
+    st.plotly_chart(fig_rgcn, width="stretch")
+
+    st.info(
+        """
+**How to interpret the temporal results**
+
+- **RF local** wins in absolute R² because cracking is still dominated by local pavement and climate conditions.
+- The key graph result is **not** “GCN beats RF”.
+- The key graph result is that adding **EXPERIMENT_SECTION** treatment/project features to the GCN produces a large improvement over the same GCN without that relational context.
+- The **R-GCN** results then show that treating spatial, corridor, and same-class links differently can help further.
+- The attempted **GCN+LSTM** extension adds a 3-year sequence encoder on top of the graph snapshots. In this project it underperformed, so it should be described as an explored extension rather than a core result.
+"""
+    )
+
+    if focus_node:
+        st.markdown("#### Concrete example: what does the temporal model see?")
+        st.markdown(
+            f"""
+For a section like **{focus_node}**, the temporal model builds one training example per year.
+
+At year **t**, it sees:
+- the section's current cracking,
+- its yearly traffic and climate context,
+- a few static geometry variables,
+- and, in the treatment-aware version, whether this section or its neighbours recently had overlay, patching, crack sealing, or other treatment events.
+
+It then predicts **cracking at t+1** and compares that prediction with the **real cracking value recorded in the next observed year** for the same section.
+"""
+        )
+
+    st.markdown("### 3. OOD temporal robustness")
+    ood_temporal_long = part1_ood_temporal.melt(
+        id_vars=["graph_variant", "test_transitions"],
+        value_vars=["rf_test_r2", "ridge_test_r2", "gcn_test_r2", "rgcn_test_r2"],
+        var_name="model",
+        value_name="test_r2",
+    )
+    ood_temporal_long["Graph variant"] = ood_temporal_long["graph_variant"].map(GRAPH_VARIANTS)
+    ood_temporal_long["Model"] = ood_temporal_long["model"].replace(
+        {
+            "rf_test_r2": "RF local",
+            "ridge_test_r2": "Ridge baseline",
+            "gcn_test_r2": "GCN",
+            "rgcn_test_r2": "R-GCN",
+        }
+    )
+    fig_ood_temp = px.bar(
+        ood_temporal_long,
+        x="Graph variant",
+        y="test_r2",
+        color="Model",
+        barmode="group",
+        title="Temporal robustness on held-out states",
+        labels={"test_r2": "Test R² on unseen states"},
+    )
+    st.plotly_chart(fig_ood_temp, width="stretch")
+    st.warning(
+        "Temporal OOD performance is weak for every model. This means the temporal task is sensitive to geography and should be described as promising within the observed data regime rather than fully general across unseen states."
+    )
+
+    st.markdown("### 4. Static disruption models")
     static_rows = graph_variant_comparison[graph_variant_comparison["model_family"] == "static"].copy()
     static_rows["Graph variant"] = static_rows["graph_variant"].map(GRAPH_VARIANTS)
     static_rows["Target"] = static_rows["target"].map(lambda x: FRIENDLY_TARGETS.get(x, x))
-    fig_static = px.bar(
+
+    if not static_target_defs.empty:
+        st.markdown(
+            """
+The static models do **not** predict observed traffic counts. They predict **synthetic disruption proxies** computed after removing a set of closed sections from the graph.
+
+Those proxies answer slightly different questions, so it is worth defining them explicitly before reading the R² scores.
+"""
+        )
+        proxy_table = static_target_defs.rename(
+            columns={
+                "target_variable": "Proxy",
+                "plain_english": "What it means in plain English",
+                "formula": "Formula",
+                "higher_means": "If this goes up...",
+                "depends_most_on": "Mostly driven by",
+            }
+        )[
+            [
+                "Proxy",
+                "What it means in plain English",
+                "Formula",
+                "If this goes up...",
+                "Mostly driven by",
+            ]
+        ]
+        st.dataframe(proxy_table, use_container_width=True, hide_index=True)
+        st.info(
+            """
+**How to read the four static proxies**
+
+- **`delta_vht_proxy`**: extra weighted travel-hours after closures. Bigger means users are effectively paying a larger travel-time penalty.
+- **`connectivity_loss_pct`**: loss of cohesion in the largest connected part of the graph. Bigger means the network breaks into more fragments.
+- **`disconnected_od_pct`**: weighted share of origin-destination pairs that become unreachable. Bigger means more trips become impossible.
+- **`disruption_score`**: composite disruption proxy. It starts from the travel penalty and inflates it when fragmentation and disconnection are also high.
+"""
+        )
+    if not static_target_worked_example.empty:
+        with st.expander("Show one worked example of a synthetic outage scenario"):
+            st.dataframe(
+                static_target_worked_example.head(20),
+                use_container_width=True,
+                hide_index=True,
+            )
+            st.caption(
+                "The first row summarises one closure scenario. The following rows list the most affected weighted OD pairs used to build the synthetic disruption targets."
+            )
+
+    static_bar = px.bar(
         static_rows,
         x="Graph variant",
-        y="gcn_test_r2",
+        y=["gcn_test_r2", "ridge_test_r2"],
+        facet_col="Target",
+        barmode="group",
+        title="Static disruption surrogates: graph model versus simple baseline",
+        labels={"value": "Test R²", "variable": "Model"},
+    )
+    static_bar.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+    st.plotly_chart(static_bar, width="stretch")
+    st.info(
+        """
+**How to read the static models**
+
+These are not direct traffic observations. They are **surrogate models** trained to predict synthetic disruption targets for hypothetical outage scenarios.
+
+Here the important comparison is: with the same outage input, does a graph-aware model explain disruption better than a simpler non-graph baseline? The answer is often yes, but the best graph variant depends on the target.
+"""
+    )
+
+    ood_static_long = part1_ood_static.melt(
+        id_vars=["graph_variant", "test_scenarios"],
+        value_vars=[
+            "delta_vht_proxy_mlp_test_r2",
+            "connectivity_loss_pct_mlp_test_r2",
+            "disconnected_od_pct_mlp_test_r2",
+            "disruption_score_mlp_test_r2",
+        ],
+        var_name="target_model",
+        value_name="test_r2",
+    )
+    ood_static_long["Graph variant"] = ood_static_long["graph_variant"].map(GRAPH_VARIANTS)
+    ood_static_long["Target"] = ood_static_long["target_model"].str.replace("_mlp_test_r2", "", regex=False).map(lambda x: FRIENDLY_TARGETS.get(x, x))
+    fig_static_ood = px.bar(
+        ood_static_long,
+        x="Graph variant",
+        y="test_r2",
         color="Target",
         barmode="group",
-        title="Static graph-model R² by graph variant and disruption target",
+        title="Static robustness on held-out states",
+        labels={"test_r2": "Test R² on unseen states"},
     )
-    st.plotly_chart(fig_static, use_container_width=True)
+    st.plotly_chart(fig_static_ood, width="stretch")
 
-    predictions = variant_predictions.copy()
-    for raw, friendly in FRIENDLY_TARGETS.items():
-        if raw in predictions.columns:
-            predictions[friendly] = predictions[raw]
-    c1, c2 = st.columns(2)
-    with c1:
-        fig_scatter_1 = px.scatter(
-            predictions,
-            x="delta_vht_proxy",
-            y="pred_delta_vht_proxy",
-            color="split",
-            title="Actual vs predicted extra travel-time proxy",
-            labels={"delta_vht_proxy": "Actual", "pred_delta_vht_proxy": "Predicted"},
-        )
-        st.plotly_chart(fig_scatter_1, use_container_width=True)
-    with c2:
-        fig_scatter_2 = px.scatter(
-            predictions,
-            x="disruption_score",
-            y="pred_disruption_score",
-            color="split",
-            title="Actual vs predicted overall disruption score",
-            labels={"disruption_score": "Actual", "pred_disruption_score": "Predicted"},
-        )
-        st.plotly_chart(fig_scatter_2, use_container_width=True)
-
-    st.success(
-        """
-**What this means**
-
-- The **full refined graph** performs best for extra travel-time proxy, connectivity loss share, and overall disruption score.
-- The **spatial graph** remains best for disconnected trip-pair share.
-- The model estimates **potential disruption of simultaneous outages**, not observed diversion behaviour.
-"""
-    )
-
-# Page 7
-with tabs[6]:
-    page_intro_box(
-        """
-The temporal model asks a different question:
-
-**Can neighbour and treatment context help explain next-year cracking?**
-"""
-    )
-    st.info(
-        """
-**How to read these model names**
-
-- **RF local** means a **Random Forest** model using only section-level features.
-- **GCN** means a **Graph Convolutional Network** that also uses neighbouring sections in the graph.
-- **R²** measures predictive fit. Higher is better, with `1` meaning perfect fit.
-"""
-    )
-    temporal_table = build_temporal_result_table(treatment_ablation)
-    st.dataframe(temporal_table, use_container_width=True, hide_index=True)
-
-    latest = treatment_ablation[treatment_ablation["treatment_mode"] == "experiment"].iloc[0]
-    metric_card_row(
-        [
-            ("RF local R²", f"{safe_float(latest['rf_test_r2']):.3f}", "Asset-level baseline"),
-            ("GCN without project/treatment features R²", f"{safe_float(latest['gcn_without_project_treatment_test_r2']):.3f}", "Graph model without treatment context"),
-            ("GCN with project/treatment features R²", f"{safe_float(latest['gcn_with_project_treatment_test_r2']):.3f}", "Graph model with EXPERIMENT_SECTION features"),
-            ("GCN gain from treatment features", f"{safe_float(latest['gcn_project_treatment_r2_gain']):.3f}", "Added relational signal from treatment/project context"),
-        ]
-    )
-
-    temporal_long = pd.DataFrame(
-        {
-            "Model": [
-                "RF local",
-                "GCN without project/treatment features",
-                "GCN with EXPERIMENT_SECTION treatment features",
-            ],
-            "Test R²": [
-                latest["rf_test_r2"],
-                latest["gcn_without_project_treatment_test_r2"],
-                latest["gcn_with_project_treatment_test_r2"],
-            ],
-        }
-    )
-    fig_temp = px.bar(temporal_long, x="Model", y="Test R²", title="One-year cracking prediction results")
-    st.plotly_chart(fig_temp, use_container_width=True)
-
-    st.info(
-        """
-**What this means**
-
-- **RF local** remains the strongest model for one-year cracking prediction.
-- The graph model should **not** be framed as “beating RF”.
-- Instead, the useful result is that **EXPERIMENT_SECTION treatment features substantially improve the GCN**, which means treatment / project context contains relational signal.
-"""
-    )
-
-# Page 8
-with tabs[7]:
-    page_intro_box(
-        """
-`EXPERIMENT_SECTION` is the treatment-history table used in the current project.
-It provides dated construction-number changes, experiment/status changes, and treatment labels at section level.
-"""
-    )
-    key_cols = pd.DataFrame(
-        {
-            "Column": [
-                "CONSTRUCTION_NO",
-                "CN_ASSIGN_DATE",
-                "ASSIGN_DATE",
-                "DEASSIGN_DATE",
-                "CN_CHANGE_REASON",
-                "CN_CHANGE_REASON_EXP",
-                "STATUS / STATUS_EXP",
-                "EXPERIMENT_NO / EXPERIMENT_NO_EXP",
-            ],
-            "Why it matters": [
-                "construction phase / version",
-                "construction-number change date",
-                "assignment date",
-                "deassignment date",
-                "coded change reason",
-                "decoded treatment/change label",
-                "status semantics",
-                "experiment semantics",
-            ],
-        }
-    )
-    st.dataframe(key_cols, use_container_width=True, hide_index=True)
-
-    group_counts = treatment_counts[treatment_counts["breakdown"] == "broad_treatment_group"].copy()
-    group_counts["Treatment group"] = group_counts["broad_treatment_group"].map(lambda x: TREATMENT_LABELS.get(x, x))
-    fig_treat = px.bar(group_counts, x="Treatment group", y="count", title="How many treatment/change events fall into each broad treatment group?")
-    st.plotly_chart(fig_treat, use_container_width=True)
-
-    st.warning(
-        """
-**Interpretation**
-
-- Not all treatment/project events are caused by cracking.
-- These records represent broader **maintenance, rehabilitation, construction-number changes, and experiment changes**.
-- In the dissertation, use the language **treatment/project history**, not “cracking-caused maintenance”.
-"""
-    )
-
-# Page 9
-with tabs[8]:
-    page_intro_box(
-        """
-This event-study analysis asks whether different treatment groups show different before/after patterns
-and whether neighbouring sections move in similar ways.
-"""
-    )
+    st.markdown("### 5. Independent descriptive evidence")
     group_view = event_by_group.copy()
     group_view["Treatment group"] = group_view["broad_treatment_group"].map(lambda x: TREATMENT_LABELS.get(x, x))
-    chart_df = group_view[
-        [
-            "Treatment group",
-            "pre_cracking_3yr_median",
-            "post_cracking_3yr_median",
-            "treated_minus_neighbour_cracking_change_median",
-            "traffic_change_pre_to_post_median",
-        ]
-    ].copy()
+    chart_df = group_view[["Treatment group", "pre_cracking_3yr_median", "post_cracking_3yr_median", "treated_minus_neighbour_cracking_change_median"]].copy()
     chart_long = chart_df.melt(id_vars="Treatment group", var_name="Metric", value_name="Value")
     chart_long["Metric"] = chart_long["Metric"].replace(
         {
-            "pre_cracking_3yr_median": "Pre-event cracking (median)",
-            "post_cracking_3yr_median": "Post-event cracking (median)",
-            "treated_minus_neighbour_cracking_change_median": "Treated minus neighbour cracking change",
-            "traffic_change_pre_to_post_median": "Traffic change pre to post",
+            "pre_cracking_3yr_median": "Pre-event cracking",
+            "post_cracking_3yr_median": "Post-event cracking",
+            "treated_minus_neighbour_cracking_change_median": "Treated minus neighbour change",
         }
     )
-    fig_event = px.bar(chart_long, x="Treatment group", y="Value", color="Metric", barmode="group", title="Treatment groups show different before/after profiles")
-    st.plotly_chart(fig_event, use_container_width=True)
-
-    if selected_case_node:
-        chosen_case = case_studies[case_studies["node_id"] == selected_case_node].iloc[0]
-        st.markdown("### Dissertation-ready case study")
-        metric_card_row(
-            [
-                ("Section", str(chosen_case["node_id"]), "Selected case-study node"),
-                ("State", str(chosen_case["state_name"]), "State context"),
-                ("Route", str(chosen_case["route_key"]), "Route / corridor label"),
-                ("Treatment group", TREATMENT_LABELS.get(chosen_case["treatment_group"], str(chosen_case["treatment_group"])), "Broad treatment category"),
-            ]
-        )
-        st.write(chosen_case["short_interpretation"])
-        st.caption(f"Limitation: {chosen_case['limitations_caution']}")
-
-    st.info(
-        """
-**Main event-study reading**
-
-- **Asphalt overlay** and **reconstruction / major rehab** show the clearest treated-section improvement.
-- **Crack sealing** starts with low cracking and tends to remain stable.
-- **Seal coat** looks more preventive and more associated with warmer / drier / sunnier contexts.
-- **Patching** is mixed.
-- Neighbours do move in some cases, but the evidence is not strong enough to claim a general causal spillover effect.
-"""
-    )
-    st.warning("This event-study is exploratory, not causal.")
-
-# Page 10
-with tabs[9]:
-    st.info(
-        """
-**Climate interpretation on this page**
-
-Monthly climate is useful because it captures **seasonality, extremes, and short-term exposure windows** that annual averages can hide.
-Examples include heat spikes, freeze-thaw months, very wet months, or unusually high solar exposure before a treatment event.
-"""
-    )
-    page_intro_box(
-        """
-Monthly climate was kept out of the main annual cracking model, but it was tested as an explanatory layer for treatment types.
-"""
-    )
-    classifier_keep = event_classifier[
-        event_classifier["feature_set"].isin(
-            [
-                "annual_climate_only",
-                "monthly_climate_only",
-                "distress_plus_traffic_plus_annual",
-                "distress_plus_traffic_plus_monthly",
-                "distress_plus_traffic_plus_annual_plus_monthly",
-            ]
-        )
-        & (event_classifier["model"] == "random_forest")
-    ].copy()
-    classifier_keep["Feature set"] = classifier_keep["feature_set"].replace(
-        {
-            "annual_climate_only": "Annual climate only",
-            "monthly_climate_only": "Monthly climate only",
-            "distress_plus_traffic_plus_annual": "Distress + traffic + annual climate",
-            "distress_plus_traffic_plus_monthly": "Distress + traffic + monthly climate",
-            "distress_plus_traffic_plus_annual_plus_monthly": "Distress + traffic + annual + monthly climate",
-        }
-    )
-    fig_cls = px.bar(
-        classifier_keep,
-        x="Feature set",
-        y=["macro_f1", "balanced_accuracy"],
-        barmode="group",
-        title="Does monthly climate help explain treatment categories?",
-    )
-    st.plotly_chart(fig_cls, use_container_width=True)
-
-    top_monthly = event_importance[event_importance["feature_set"] == "monthly_climate_only"].sort_values("importance", ascending=False).head(12)
-    fig_imp = px.bar(top_monthly, x="importance", y="feature", orientation="h", title="Most informative monthly climate features")
-    st.plotly_chart(fig_imp, use_container_width=True)
-
-    redundancy_counts = monthly_redundancy["keep_redundant_recommendation"].value_counts().rename_axis("Recommendation").reset_index(name="Count")
-    fig_red = px.pie(redundancy_counts, names="Recommendation", values="Count", title="How many monthly climate features are useful vs redundant?")
-    st.plotly_chart(fig_red, use_container_width=True)
+    fig_event = px.bar(chart_long, x="Treatment group", y="Value", color="Metric", barmode="group", title="Event-study summary by treatment group")
+    st.plotly_chart(fig_event, width="stretch")
+    st.caption("This event-study is descriptive rather than causal. Its role is to provide a second, non-GNN view of how treatment categories and neighbouring sections behave before and after recorded interventions.")
 
     st.success(
         """
-**What this means**
+**What the full evidence now says**
 
-- Monthly climate helps explain **treatment categories** better than annual climate alone.
-- The most useful monthly variables are about **shortwave exposure, temperature extremes/variation, freeze-thaw, and humidity variability**.
-- Long 12–36 month monthly averages are often redundant with annual climate.
-- Monthly climate **did not improve the main annual cracking model** after the corrected MERRA mapping.
+- The graph is useful for representing **interdependencies**, especially for static outage/disruption reasoning.
+- **RF local** remains the best pure asset-level predictor of next-year cracking.
+- **Graph models become useful when the question is relational**: neighbour treatment history and edge type start to matter.
+- **EXPERIMENT_SECTION** is the meaningful treatment-history source; the app should not frame the older project-history comparison as the main story.
+- **OOD tests** show that full transfer to unseen states is still difficult, which is an honest and important limitation.
+- **OSM checks** support most local edges and show that long same-route links should be interpreted as corridor membership rather than local neighbour effects.
 """
     )
 
-# Page 11
-with tabs[10]:
-    page_intro_box("This page summarises the full dissertation story from asset-level records to network-aware maintenance planning.")
-    st.markdown(
-        """
-### Final conclusions
-
-1. The LTPP data can be transformed from asset-level records into a **section-level interdependency graph**.
-2. The graph is fragmented, so it should be interpreted as **local interdependency networks**, not a full national road network.
-3. **Spatial graph structure** works best for proxy disruption prediction.
-4. **RF local** is best for one-year cracking prediction.
-5. **EXPERIMENT_SECTION treatment features** improve the GCN, showing useful treatment-context signal.
-6. **Monthly climate** adds information for treatment-category explanation.
-7. Annual traffic data do not allow direct measurement of short-term traffic diversion.
-8. Therefore, disruption is modelled using **graph-based synthetic proxies**.
-9. The next step is **graph-aware maintenance portfolio optimisation**.
-"""
-    )
-    st.success(
-        """
-**Next-step pipeline**
-
-`Condition need from RF`
-  
-`+`
-  
-`Network disruption from graph model`
-  
-`+`
-  
-`Treatment semantics from EXPERIMENT_SECTION`
-  
-`+`
-  
-`Budget and conflict constraints`
-  
-`=`
-  
-`Maintenance portfolio optimisation`
-"""
-    )
-
-# Page 12
-with tabs[11]:
-    page_intro_box("This appendix keeps the raw diagnostics available without interrupting the main dissertation narrative.")
-    appendix_files = [
-        "graph_diagnostics.csv",
-        "graph_distance_summary.csv",
-        "climate_mapping_diagnostics.csv",
-        "monthlyagg_feature_diagnostics.csv",
-        "graph_variant_model_comparison.csv",
-        "monthly_climate_ablation.csv",
-        "treatment_feature_ablation.csv",
-        "experiment_event_study_by_group.csv",
-        "experiment_event_study_climate_by_group.csv",
-        "experiment_event_study_treatment_classifier.csv",
-        "experiment_event_study_feature_importance.csv",
-        "experiment_event_study_neighbour_vs_control.csv",
-        "static_target_variable_definitions.csv",
-        "static_target_worked_example.csv",
-    ]
-    for name in appendix_files:
-        with st.expander(f"Show {name}"):
-            path = REPORT_DIR / name
-            if path.suffix.lower() == ".csv":
-                st.dataframe(pd.read_csv(path, low_memory=False), use_container_width=True)
-            else:
-                st.code(path.read_text(), language="json")
-
-    if advanced_mode:
-        with st.expander("Show selected variant scenario predictions"):
-            st.dataframe(variant_predictions.head(200), use_container_width=True)
+if advanced_mode and len(tabs) > 3:
+    with tabs[3]:
+        page_intro_box("This appendix keeps a few raw diagnostics available without interrupting the main story.")
+        st.markdown("### Data freshness")
+        st.caption("The app now reads live files from disk for graph data, reports, and inspector tables. This table helps confirm which outputs were last updated.")
+        st.dataframe(build_data_freshness_table(), use_container_width=True, hide_index=True)
+        appendix_files = [
+            "graph_diagnostics.csv",
+            "graph_variant_model_comparison.csv",
+            "treatment_feature_ablation.csv",
+            "part1_rgcn_temporal.csv",
+            "part1_ood_temporal.csv",
+            "part1_ood_static.csv",
+            "osm_topology_status_summary.csv",
+            "same_route_real_axis_summary.csv",
+            "same_route_edge_suspects_summary.csv",
+        ]
+        for name in appendix_files:
+            with st.expander(f"Show {name}"):
+                st.dataframe(pd.read_csv(REPORT_DIR / name, low_memory=False), use_container_width=True)

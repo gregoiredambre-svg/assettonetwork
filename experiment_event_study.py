@@ -180,6 +180,14 @@ def build_node_id_join(state_code: object, shrp_id: object) -> str:
     return f"{str(state_code).strip()}_{normalize_shrp_id(shrp_id) or ''}"
 
 
+def load_node_lookup() -> pd.DataFrame:
+    nodes = pd.read_csv(GRAPH_DIR / "nodes.csv", low_memory=False)
+    nodes["node_id"] = nodes["node_id"].astype(str)
+    if "node_id_join" not in nodes.columns:
+        nodes["node_id_join"] = nodes["node_id"].map(lambda node_id: build_node_id_join(*str(node_id).split("_", 1)) if "_" in str(node_id) else None)
+    return nodes[["node_id", "node_id_join"]].dropna(subset=["node_id_join"]).drop_duplicates(subset=["node_id_join"])
+
+
 def classify_treatment_group(label: object) -> str:
     if pd.isna(label):
         return "unknown"
@@ -211,8 +219,8 @@ def load_experiment_events() -> pd.DataFrame:
     df = pd.read_excel(DATA_DIR / "General Section Info.xlsx", sheet_name="EXPERIMENT_SECTION")
     df["state_code"] = df["STATE_CODE"].astype(str).str.strip()
     df["shrp_id"] = df["SHRP_ID"].astype(str).str.strip()
-    df["node_id"] = df.apply(lambda row: build_node_id(row["state_code"], row["shrp_id"]), axis=1)
     df["node_id_join"] = df.apply(lambda row: build_node_id_join(row["state_code"], row["shrp_id"]), axis=1)
+    df = df.merge(load_node_lookup(), on="node_id_join", how="left")
     df["state_name"] = df["state_code"].map(lambda code: STATE_NAMES.get(code, f"State {code}"))
     for col in ["CN_CHANGE_REASON", "CN_CHANGE_REASON_EXP", "STATUS", "STATUS_EXP", "GPS_SPS", "GPS_SPS_EXP", "EXPERIMENT_NO", "EXPERIMENT_NO_EXP"]:
         if col in df.columns:
@@ -293,7 +301,8 @@ def load_distress() -> pd.DataFrame:
         df = pd.read_excel(DATA_DIR / "Analysis Ready Distress.xlsx", sheet_name=sheet, usecols=usecols)
         df["state_code"] = df["STATE_CODE"].astype(str).str.strip()
         df["shrp_id"] = df["SHRP_ID"].astype(str).str.strip()
-        df["node_id"] = df.apply(lambda row: build_node_id(row["state_code"], row["shrp_id"]), axis=1)
+        df["node_id_join"] = df.apply(lambda row: build_node_id_join(row["state_code"], row["shrp_id"]), axis=1)
+        df = df.merge(load_node_lookup(), on="node_id_join", how="left")
         df["survey_date"] = pd.to_datetime(df["SURVEY_DATE"], errors="coerce")
         df["survey_year"] = df["survey_date"].dt.year.astype("Int64")
         df["cracking_value"] = pd.to_numeric(df[cracking_col], errors="coerce")
@@ -308,21 +317,25 @@ def load_distress() -> pd.DataFrame:
 
 
 def load_traffic() -> pd.DataFrame:
-    trend = pd.read_excel(
+    def _prepare(frame: pd.DataFrame) -> pd.DataFrame:
+        work = frame.copy()
+        work["state_code"] = work["STATE_CODE"].astype(str).str.strip()
+        work["shrp_id"] = work["SHRP_ID"].astype(str).str.strip()
+        work["node_id_join"] = work.apply(lambda row: build_node_id_join(row["state_code"], row["shrp_id"]), axis=1)
+        work = work.merge(load_node_lookup(), on="node_id_join", how="left")
+        work["YEAR"] = pd.to_numeric(work["YEAR"], errors="coerce").astype("Int64")
+        return work
+
+    trend = _prepare(pd.read_excel(
         DATA_DIR / "Annual Traffic Inputs Over Time.xlsx",
         sheet_name="TRF_TREND",
         usecols=["STATE_CODE", "SHRP_ID", "YEAR", "ANNUAL_ESAL_TREND", "ANNUAL_GESAL_TREND"],
-    )
-    trend1 = pd.read_excel(
+    ))
+    trend1 = _prepare(pd.read_excel(
         DATA_DIR / "Annual Traffic Inputs Over Time.xlsx",
         sheet_name="TRF_TREND_1",
         usecols=["STATE_CODE", "SHRP_ID", "YEAR", "AADTT_ALL_TRUCKS_TREND", "ANNUAL_TRUCK_VOLUME_TREND"],
-    )
-    for frame in (trend, trend1):
-        frame["state_code"] = frame["STATE_CODE"].astype(str).str.strip()
-        frame["shrp_id"] = frame["SHRP_ID"].astype(str).str.strip()
-        frame["node_id"] = frame.apply(lambda row: build_node_id(row["state_code"], row["shrp_id"]), axis=1)
-        frame["YEAR"] = pd.to_numeric(frame["YEAR"], errors="coerce").astype("Int64")
+    ))
     merged = trend[["node_id", "YEAR", "ANNUAL_ESAL_TREND", "ANNUAL_GESAL_TREND"]].merge(
         trend1[["node_id", "YEAR", "AADTT_ALL_TRUCKS_TREND", "ANNUAL_TRUCK_VOLUME_TREND"]],
         on=["node_id", "YEAR"],

@@ -12,7 +12,7 @@
     "other_maintenance": 1
   },
   "n_events": 7934,
-  "n_controls": 1449,
+  "n_controls": 3112,
   "notes": {
     "monthly_modeling": "Traffic is annual and distress is irregular, so this remains an annual event-study with exact event dates used only for monthly climate windows.",
     "causality": "This is exploratory and descriptive, not a causal proof."

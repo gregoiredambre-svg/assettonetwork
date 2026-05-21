@@ -110,11 +110,39 @@ def clean_numeric_frame(df: pd.DataFrame, keep_cols: list[str]) -> pd.DataFrame:
     return work
 
 
+def normalize_shrp_id(value: object) -> str | None:
+    if pd.isna(value):
+        return None
+    text = str(value).strip()
+    if not text or text.lower() == "nan":
+        return None
+    try:
+        numeric = float(text)
+        if numeric.is_integer():
+            return str(int(numeric))
+    except Exception:
+        pass
+    stripped = text.lstrip("0")
+    return stripped or "0"
+
+
+def normalize_shrp_id_series(series: pd.Series) -> pd.Series:
+    return series.map(normalize_shrp_id)
+
+
+def build_node_id(state_code: pd.Series, shrp_id: pd.Series) -> pd.Series:
+    return state_code.astype(str).str.strip() + "_" + shrp_id.astype(str).str.strip()
+
+
+def build_node_id_join(state_code: pd.Series, shrp_id: pd.Series) -> pd.Series:
+    return state_code.astype(str).str.strip() + "_" + normalize_shrp_id_series(shrp_id).fillna("")
+
+
 def prepare_node_table() -> pd.DataFrame:
     """Build the section node table with spatial and asset metadata."""
     log("Loading section metadata from Excel...")
     file = DATA_DIR / "General Section Info.xlsx"
-    xls = pd.ExcelFile(file)
+    pd.ExcelFile(file)
 
     coords = load_excel_table(file, "SECTION_COORDINATES")
     route = load_excel_table(file, "PROJECT_ID_EXP")
@@ -132,34 +160,39 @@ def prepare_node_table() -> pd.DataFrame:
     route = route.rename(columns={"STATE_CODE": "state_code", "SHRP_ID": "shrp_id"})
     section = section.rename(columns={"STATE_CODE": "state_code", "SHRP_ID": "shrp_id"})
 
-    coords = coords.dropna(subset=["LATITUDE", "LONGITUDE"])
+    for df in (coords, route, section):
+        normalize_string_columns(df, ["state_code", "shrp_id"])
+        df["node_id_join"] = build_node_id_join(df["state_code"], df["shrp_id"])
+
+    coords = coords.dropna(subset=["LATITUDE", "LONGITUDE", "node_id_join"])
     coords = coords[(coords["LONGITUDE"] >= -125) & (coords["LONGITUDE"] <= -66) & (coords["LATITUDE"] >= 24) & (coords["LATITUDE"] <= 50)]
     log(f"Coordinates after bounding box filter: {len(coords)} rows")
 
-    nodes = coords.drop_duplicates(subset=["state_code", "shrp_id"]).copy()
-    nodes["node_id"] = nodes["state_code"].astype(str) + "_" + nodes["shrp_id"].astype(str)
-    nodes = nodes.set_index("node_id")
+    coords["shrp_id_len"] = coords["shrp_id"].astype(str).str.len()
+    coords = coords.sort_values(["state_code", "node_id_join", "shrp_id_len"], ascending=[True, True, False])
+    nodes = coords.drop_duplicates(subset=["state_code", "node_id_join"]).copy()
+    nodes["node_id"] = build_node_id(nodes["state_code"], nodes["shrp_id"])
+    nodes = nodes.set_index("node_id_join")
 
-    route_cols = [c for c in route.columns if c not in ["state_code", "state_code_exp", "shrp_id"]]
-    route = route.drop_duplicates(subset=["state_code", "shrp_id"])[["state_code", "shrp_id"] + route_cols]
-    route["node_id"] = route["state_code"].astype(str) + "_" + route["shrp_id"].astype(str)
-    route = route.set_index("node_id")
+    route_cols = [c for c in route.columns if c not in ["state_code", "state_code_exp", "STATE_CODE_EXP", "shrp_id", "node_id_join"]]
+    route = route.sort_values(["state_code", "node_id_join"]).drop_duplicates(subset=["state_code", "node_id_join"])
+    route = route.set_index("node_id_join")[[c for c in route_cols if c in route.columns]]
 
-    section_cols = [c for c in section.columns if c not in ["state_code", "state_code_exp", "shrp_id"]]
-    section = section.drop_duplicates(subset=["state_code", "shrp_id"])[["state_code", "shrp_id"] + section_cols]
-    section["node_id"] = section["state_code"].astype(str) + "_" + section["shrp_id"].astype(str)
-    section = section.set_index("node_id")
+    section_cols = [c for c in section.columns if c not in ["state_code", "state_code_exp", "STATE_CODE_EXP", "shrp_id", "node_id_join"]]
+    section = section.sort_values(["state_code", "node_id_join"]).drop_duplicates(subset=["state_code", "node_id_join"])
+    section = section.set_index("node_id_join")[[c for c in section_cols if c in section.columns]]
 
-    node_table = nodes.join(route.drop(columns=["state_code", "STATE_CODE_EXP", "shrp_id"], errors="ignore"), how="left")
-    node_table = node_table.join(section.drop(columns=["state_code", "STATE_CODE_EXP", "shrp_id"], errors="ignore"), how="left")
-    node_table = node_table.reset_index()
+    node_table = nodes.join(route, how="left")
+    node_table = node_table.join(section, how="left")
+    node_table = node_table.reset_index().rename(columns={"index": "node_id_join"})
     node_table = node_table.rename(columns={"LATITUDE": "latitude", "LONGITUDE": "longitude", "ELEVATION": "elevation"})
+    node_table = node_table.drop(columns=["shrp_id_len"], errors="ignore")
 
-    # Simple feature engineering for route/corridor grouping
-    node_table["route_key"] = (
-        node_table["ROUTE_SIGNING"].fillna("") + "_" + node_table["ROUTE_NO"].astype(str).fillna("")
-    )
-    node_table["functional_class"] = node_table["FUNCTIONAL_CLASS"].fillna(node_table["FUNCTIONAL_CLASS_EXP"])
+    route_signing = node_table.get("ROUTE_SIGNING", pd.Series("", index=node_table.index)).fillna("").astype(str).str.strip()
+    route_no = node_table.get("ROUTE_NO", pd.Series("", index=node_table.index))
+    route_no_text = route_no.where(route_no.notna(), "").astype(str).str.strip()
+    node_table["route_key"] = route_signing + "_" + route_no_text
+    node_table["functional_class"] = node_table["FUNCTIONAL_CLASS"].fillna(node_table.get("FUNCTIONAL_CLASS_EXP"))
     log(f"Node table prepared with {len(node_table)} nodes")
     return node_table
 
@@ -173,21 +206,21 @@ def load_climate_features() -> pd.DataFrame:
     grid = load_excel_table(grid_path, "MERRA_GRID_SECTION")
     grid = grid.rename(columns={"STATE_CODE": "state_code", "SHRP_ID": "shrp_id", "MERRA_ID": "merra_id"})
     normalize_string_columns(grid, ["state_code", "shrp_id", "merra_id"])
-    grid["node_id"] = grid["state_code"].astype(str) + "_" + grid["shrp_id"].astype(str)
+    grid["node_id_join"] = build_node_id_join(grid["state_code"], grid["shrp_id"])
     grid["merra_grid_elevation"] = pd.to_numeric(grid["ELEVATION"], errors="coerce")
-    grid = grid[["node_id", "merra_id", "merra_grid_elevation"]].drop_duplicates(subset=["node_id"])
+    grid = grid[["node_id_join", "merra_id", "merra_grid_elevation"]].drop_duplicates(subset=["node_id_join"])
 
     bind_path = climate_root / "TEMPERATURE" / "VW_MERRA_BIND_CLIMATE_DATA.xlsx"
     bind = load_excel_table(bind_path, "VW_MERRA_BIND_CLIMATE_DATA")
     bind = bind.rename(columns={"STATE_CODE": "state_code", "SHRP_ID": "shrp_id", "MERRA_ID": "merra_id"})
     normalize_string_columns(bind, ["state_code", "shrp_id", "merra_id"])
-    bind["node_id"] = bind["state_code"].astype(str) + "_" + bind["shrp_id"].astype(str)
-    bind = clean_numeric_frame(bind, ["state_code", "shrp_id", "merra_id", "node_id"])
+    bind["node_id_join"] = build_node_id_join(bind["state_code"], bind["shrp_id"])
+    bind = clean_numeric_frame(bind, ["state_code", "shrp_id", "merra_id", "node_id_join"])
     bind_cols = [
         col for col in bind.columns
-        if col not in {"state_code", "shrp_id", "merra_id", "node_id"}
+        if col not in {"state_code", "shrp_id", "merra_id", "node_id_join"}
     ]
-    bind_agg = bind.groupby("node_id")[bind_cols].mean().reset_index()
+    bind_agg = bind.groupby("node_id_join")[bind_cols].mean().reset_index()
     bind_agg = bind_agg.rename(columns={col: f"temp_bind_{col.lower()}" for col in bind_cols})
 
     year_specs = [
@@ -235,12 +268,12 @@ def load_climate_features() -> pd.DataFrame:
         agg = agg.rename(columns={col: f"{prefix}{col.lower()}" for col in value_cols})
         year_frames.append(agg)
 
-    climate = grid.merge(bind_agg, on="node_id", how="left")
+    climate = grid.merge(bind_agg, on="node_id_join", how="left")
     for frame in year_frames:
         climate = climate.merge(frame, on="merra_id", how="left")
 
     global CLIMATE_REPORT
-    feature_cols = [col for col in climate.columns if col not in {"node_id", "merra_id"}]
+    feature_cols = [col for col in climate.columns if col not in {"node_id_join", "merra_id"}]
     prefixed_climate_cols = [col for col in feature_cols if col.startswith(("temp_bind_", "humid_", "precip_", "wind_", "solar_", "temp_year_"))]
     new_annual_climate_cols = [col for col in prefixed_climate_cols if not col.startswith("temp_bind_")]
     CLIMATE_REPORT = {
@@ -263,17 +296,18 @@ def load_distress_features() -> pd.DataFrame:
     for sheet in ["ANALYSIS_DIS_AC", "ANALYSIS_DIS_CRCP", "ANALYSIS_DIS_JPCC"]:
         df = load_excel_table(file, sheet)
         df = df.rename(columns={"STATE_CODE": "state_code", "SHRP_ID": "shrp_id", "CONSTRUCTION_NO": "construction_no"})
-        df["node_id"] = df["state_code"].astype(str) + "_" + df["shrp_id"].astype(str)
+        normalize_string_columns(df, ["state_code", "shrp_id"])
+        df["node_id_join"] = build_node_id_join(df["state_code"], df["shrp_id"])
         numeric = df.select_dtypes(include=[np.number])
         if numeric.empty:
             continue
         cols = [c for c in numeric.columns if c not in ["state_code", "shrp_id", "construction_no"]]
-        agg = df[["node_id"] + cols].groupby("node_id").mean()
+        agg = df[["node_id_join"] + cols].groupby("node_id_join").mean()
         agg.columns = [f"distress_{sheet.lower()}_{c}" for c in agg.columns]
         distress_dfs.append(agg)
 
     if not distress_dfs:
-        return pd.DataFrame(columns=["node_id"])
+        return pd.DataFrame(columns=["node_id_join"])
     features = pd.concat(distress_dfs, axis=1)
     features = features.loc[:, ~features.columns.duplicated()].reset_index()
     log(f"Distress features assembled for {len(features)} node_ids")
@@ -288,19 +322,20 @@ def load_traffic_features() -> pd.DataFrame:
     for sheet in ["TRF_TREND", "TRF_TREND_1", "TRF_TREND_2"]:
         df = load_excel_table(file, sheet)
         df = df.rename(columns={"STATE_CODE": "state_code", "SHRP_ID": "shrp_id", "CONSTRUCTION_NO": "construction_no"})
-        df["node_id"] = df["state_code"].astype(str) + "_" + df["shrp_id"].astype(str)
+        normalize_string_columns(df, ["state_code", "shrp_id"])
+        df["node_id_join"] = build_node_id_join(df["state_code"], df["shrp_id"])
         numeric = df.select_dtypes(include=[np.number]).columns.tolist()
         if not numeric:
             continue
         # keep the latest year for each section
-        df = df.sort_values(["node_id", "YEAR"]).groupby("node_id").tail(1)
+        df = df.sort_values(["node_id_join", "YEAR"]).groupby("node_id_join").tail(1)
         prefix = f"traffic_{sheet.lower()}_"
-        agg = df[["node_id"] + numeric].set_index("node_id")
+        agg = df[["node_id_join"] + numeric].set_index("node_id_join")
         agg.columns = [prefix + c for c in agg.columns]
         traffic_dfs.append(agg)
     if not traffic_dfs:
         log("No traffic feature sheets found")
-        return pd.DataFrame(columns=["node_id"])
+        return pd.DataFrame(columns=["node_id_join"])
     features = pd.concat(traffic_dfs, axis=1)
     features = features.loc[:, ~features.columns.duplicated()].reset_index()
     log(f"Traffic features assembled for {len(features)} node_ids")
@@ -324,7 +359,7 @@ def load_project_events() -> pd.DataFrame:
             "GPS_SPS_EXP",
         ],
     )
-    df["node_id"] = df["state_code"].astype(str) + "_" + df["shrp_id"].astype(str)
+    df["node_id_join"] = build_node_id_join(df["state_code"], df["shrp_id"])
     df["construction_no"] = pd.to_numeric(df.get("CONSTRUCTION_NO"), errors="coerce")
     df["construction_date"] = pd.to_datetime(df.get("CN_ASSIGN_DATE"), errors="coerce")
     fallback_start = pd.to_datetime(df.get("ASSIGN_DATE"), errors="coerce")
@@ -337,16 +372,11 @@ def load_project_events() -> pd.DataFrame:
     df["experiment_label"] = df.get("EXPERIMENT_NO_EXP")
     df["status_label"] = df.get("STATUS_EXP")
     df["gps_sps_label"] = df.get("GPS_SPS_EXP")
-    df = df.dropna(subset=["construction_date"]).copy()
-    df = df.sort_values(["node_id", "construction_date", "construction_no", "treatment_label"]).reset_index(drop=True)
-    seq = df.groupby(["node_id", "construction_date"]).cumcount() + 1
-    date_text = df["construction_date"].dt.strftime("%Y%m%d")
-    construction_text = df["construction_no"].fillna(-1).astype(int).astype(str)
-    df["project_id"] = df["node_id"] + "_" + date_text + "_" + construction_text + "_" + seq.astype(str)
+    df = df.dropna(subset=["construction_date", "node_id_join"]).copy()
+    df = df.sort_values(["node_id_join", "construction_date", "construction_no", "treatment_label"]).reset_index(drop=True)
     result = df[
         [
-            "project_id",
-            "node_id",
+            "node_id_join",
             "construction_date",
             "traffic_open_date",
             "construction_no",
@@ -786,11 +816,11 @@ def assemble_graph() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataF
     distress = load_distress_features()
     traffic = load_traffic_features()
 
-    nodes = nodes.merge(climate, on="node_id", how="left")
+    nodes = nodes.merge(climate, on="node_id_join", how="left")
     if "merra_grid_elevation" in nodes.columns and "elevation" in nodes.columns:
         nodes["elevation"] = pd.to_numeric(nodes["elevation"], errors="coerce").fillna(nodes["merra_grid_elevation"])
-    nodes = nodes.merge(distress, on="node_id", how="left")
-    nodes = nodes.merge(traffic, on="node_id", how="left")
+    nodes = nodes.merge(distress, on="node_id_join", how="left")
+    nodes = nodes.merge(traffic, on="node_id_join", how="left")
 
     global CLIMATE_REPORT
     if CLIMATE_REPORT:
@@ -809,8 +839,29 @@ def assemble_graph() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataF
     edges = augment_diversion(edges, nodes)
     edges = add_edge_weight_views(edges)
 
-    projects = load_project_events()
-    projects = projects[projects["node_id"].isin(set(nodes["node_id"].astype(str)))].copy()
+    node_lookup = nodes[["node_id", "node_id_join"]].dropna(subset=["node_id_join"]).drop_duplicates(subset=["node_id_join"])
+    projects = load_project_events().merge(node_lookup, on="node_id_join", how="inner")
+    projects = projects.sort_values(["node_id", "construction_date", "construction_no", "treatment_label"]).reset_index(drop=True)
+    seq = projects.groupby(["node_id", "construction_date"]).cumcount() + 1
+    date_text = projects["construction_date"].dt.strftime("%Y%m%d")
+    construction_text = projects["construction_no"].fillna(-1).astype(int).astype(str)
+    projects["project_id"] = projects["node_id"] + "_" + date_text + "_" + construction_text + "_" + seq.astype(str)
+    project_cols = [
+        "project_id",
+        "node_id",
+        "node_id_join",
+        "construction_date",
+        "traffic_open_date",
+        "construction_no",
+        "event_year",
+        "treatment_code",
+        "treatment_label",
+        "broad_treatment_group",
+        "experiment_label",
+        "status_label",
+        "gps_sps_label",
+    ]
+    projects = projects[project_cols].copy()
     conflicts = build_project_conflicts(projects, edges)
     node_conflicts = build_node_conflict_edges(projects, edges)
     return nodes, edges, projects, conflicts, node_conflicts

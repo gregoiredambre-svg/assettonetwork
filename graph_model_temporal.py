@@ -44,6 +44,11 @@ VAL_END = 2018
 TEST_START = 2019
 TEST_END = 2021
 TARGET_COL = "HPMS16_CRACKING_PERCENT_AC"
+FEATURE_MIN_NON_MISSING_SHARE = 0.35
+FEATURE_STD_EPS = 1e-8
+TEMPORAL_EXCLUDED_FEATURES = {
+    "functional_class": "Categorical road-role code excluded from the current numeric temporal model.",
+}
 TREATMENT_GROUPS = {
     "crack_sealing": ["crack sealing", "joint sealing", "saw and seal"],
     "asphalt_overlay": ["overlay", "mill off ac and overlay", "mill existing pavement and overlay", "warm mix ac overlay"],
@@ -149,6 +154,14 @@ def load_base_nodes() -> pd.DataFrame:
     return nodes[keep].copy()
 
 
+def load_node_lookup() -> pd.DataFrame:
+    nodes = pd.read_csv(GRAPH_DIR / "nodes.csv", low_memory=False)
+    nodes["node_id"] = nodes["node_id"].astype(str)
+    if "node_id_join" not in nodes.columns:
+        nodes["node_id_join"] = nodes["node_id"].map(build_node_id_join_scalar)
+    return nodes[["node_id", "node_id_join"]].dropna(subset=["node_id_join"]).drop_duplicates(subset=["node_id_join"])
+
+
 def filter_edges_for_variant(edges: pd.DataFrame, graph_variant: str) -> pd.DataFrame:
     variant_to_types = {
         "spatial": {"spatial"},
@@ -195,7 +208,8 @@ def load_distress_ac() -> pd.DataFrame:
     )
     df = df.rename(columns={"STATE_CODE": "state_code", "SHRP_ID": "shrp_id"})
     normalize_string_columns(df, ["state_code", "shrp_id"])
-    df["node_id"] = build_node_id(df["state_code"], df["shrp_id"])
+    df["node_id_join"] = build_node_id_join(df["state_code"], df["shrp_id"])
+    df = df.merge(load_node_lookup(), on="node_id_join", how="left")
     df["SURVEY_DATE"] = pd.to_datetime(df["SURVEY_DATE"], errors="coerce")
     df["YEAR"] = df["SURVEY_DATE"].dt.year.astype("Int64")
     df[TARGET_COL] = pd.to_numeric(df[TARGET_COL], errors="coerce")
@@ -229,7 +243,8 @@ def load_traffic_panel() -> pd.DataFrame:
         df = pd.read_excel(path, sheet_name=sheet, usecols=keep_cols)
         df = df.rename(columns={"STATE_CODE": "state_code", "SHRP_ID": "shrp_id"})
         normalize_string_columns(df, ["state_code", "shrp_id"])
-        df["node_id"] = build_node_id(df["state_code"], df["shrp_id"])
+        df["node_id_join"] = build_node_id_join(df["state_code"], df["shrp_id"])
+        df = df.merge(load_node_lookup(), on="node_id_join", how="left")
         df["YEAR"] = pd.to_numeric(df["YEAR"], errors="coerce").astype("Int64")
         for col in value_cols:
             df[col] = pd.to_numeric(df[col], errors="coerce")
@@ -409,7 +424,8 @@ def load_experiment_treatment_events() -> tuple[pd.DataFrame, pd.DataFrame]:
     df = pd.read_excel(path, sheet_name="EXPERIMENT_SECTION")
     df = df.rename(columns={"STATE_CODE": "state_code", "SHRP_ID": "shrp_id"})
     normalize_string_columns(df, ["state_code", "shrp_id", "CN_CHANGE_REASON_EXP", "CN_CHANGE_REASON"])
-    df["node_id"] = build_node_id(df["state_code"], df["shrp_id"])
+    df["node_id_join"] = build_node_id_join(df["state_code"], df["shrp_id"])
+    df = df.merge(load_node_lookup(), on="node_id_join", how="left")
     df["construction_no"] = pd.to_numeric(df.get("CONSTRUCTION_NO"), errors="coerce")
     df["event_start_date"] = pd.to_datetime(df.get("CN_ASSIGN_DATE"), errors="coerce")
     fallback_start = pd.to_datetime(df.get("ASSIGN_DATE"), errors="coerce")
@@ -421,6 +437,7 @@ def load_experiment_treatment_events() -> tuple[pd.DataFrame, pd.DataFrame]:
     df["broad_treatment_group"] = df["treatment_label"].map(classify_treatment_group)
     event_cols = [
         "node_id",
+        "node_id_join",
         "state_code",
         "shrp_id",
         "construction_no",
@@ -600,7 +617,73 @@ def build_temporal_panel(
     return panel, transitions, treatment_counts, treatment_semantics
 
 
-def build_feature_sets(panel: pd.DataFrame, treatment_mode: str) -> tuple[list[str], list[str], list[str]]:
+def infer_feature_family(col: str) -> str:
+    if col == "cracking_t":
+        return "distress_state"
+    if col.startswith("traffic_"):
+        return "traffic"
+    if col.startswith(("humid_", "precip_", "wind_", "solar_", "temp_year_")):
+        return "climate"
+    if col.startswith("monthlyagg_"):
+        return "monthly_climate"
+    if col.startswith("neighbour_"):
+        return "neighbour_treatment"
+    if col.startswith("had_") or col.startswith("years_since_") or col.startswith("treatment_count_"):
+        return "section_treatment"
+    if col in {"NO_OF_LANES", "SECTION_LENGTH", "SPEED_LIMIT", "functional_class"}:
+        return "static_section"
+    return "other"
+
+
+def audit_and_filter_feature_columns(
+    panel: pd.DataFrame,
+    candidate_cols: list[str],
+    treatment_cols: list[str],
+) -> tuple[list[str], list[str], pd.DataFrame]:
+    train_rows = panel[(panel["YEAR"] <= TRAIN_END) & panel["target_t1"].notna()].copy()
+    rows: list[dict[str, object]] = []
+    kept: list[str] = []
+    treatment_set = set(treatment_cols)
+    for col in candidate_cols:
+        family = infer_feature_family(col)
+        values = pd.to_numeric(train_rows[col], errors="coerce") if col in train_rows.columns else pd.Series(dtype=float)
+        missing_share = float(values.isna().mean()) if len(values) else 1.0
+        non_missing = values.dropna()
+        non_missing_share = 1.0 - missing_share
+        unique_count = int(non_missing.nunique()) if len(non_missing) else 0
+        std = float(non_missing.std(ddof=0)) if len(non_missing) > 1 else 0.0
+        retain = True
+        reason = "kept"
+        if col in TEMPORAL_EXCLUDED_FEATURES:
+            retain = False
+            reason = TEMPORAL_EXCLUDED_FEATURES[col]
+        elif non_missing_share < FEATURE_MIN_NON_MISSING_SHARE:
+            retain = False
+            reason = f"Dropped: only {non_missing_share:.1%} of training transitions have values."
+        elif unique_count < 2 or std <= FEATURE_STD_EPS:
+            retain = False
+            reason = "Dropped: effectively constant on the training split."
+        if retain:
+            kept.append(col)
+        rows.append(
+            {
+                "feature_name": col,
+                "feature_family": family,
+                "is_treatment_feature": int(col in treatment_set),
+                "train_non_missing_share": non_missing_share,
+                "train_missing_share": missing_share,
+                "train_unique_values": unique_count,
+                "train_std": std,
+                "retained": int(retain),
+                "decision_reason": reason,
+            }
+        )
+    audit_df = pd.DataFrame(rows).sort_values(["retained", "feature_family", "feature_name"], ascending=[False, True, True]).reset_index(drop=True)
+    kept_no_treatment = [col for col in kept if col not in treatment_set]
+    return kept, kept_no_treatment, audit_df
+
+
+def build_feature_sets(panel: pd.DataFrame, treatment_mode: str) -> tuple[list[str], list[str], list[str], pd.DataFrame]:
     traffic_cols = [col for col in panel.columns if col.startswith("traffic_")]
     climate_cols = [col for col in panel.columns if col.startswith(("humid_", "precip_", "wind_", "solar_", "temp_year_"))]
     monthlyagg_cols = [col for col in panel.columns if col.startswith("monthlyagg_")]
@@ -632,8 +715,8 @@ def build_feature_sets(panel: pd.DataFrame, treatment_mode: str) -> tuple[list[s
         *treatment_cols,
     ]
     local_cols = [col for col in local_cols if col in panel.columns]
-    no_project_cols = [col for col in local_cols if col not in set(treatment_cols)]
-    return local_cols, no_project_cols, static_cols
+    kept, kept_no_treatment, audit_df = audit_and_filter_feature_columns(panel, local_cols, treatment_cols)
+    return kept, kept_no_treatment, static_cols, audit_df
 
 
 @dataclass
@@ -656,6 +739,7 @@ class TemporalData:
     treatment_mode: str
     treatment_category_counts: pd.DataFrame | None
     treatment_semantics: pd.DataFrame | None
+    feature_audit: pd.DataFrame | None
 
 
 def fit_imputer_scaler(train_2d: np.ndarray) -> tuple[SimpleImputer, StandardScaler]:
@@ -688,7 +772,7 @@ def prepare_temporal_data(
     node_index = {node_id: idx for idx, node_id in enumerate(node_ids)}
     year_index = {year: idx for idx, year in enumerate(years)}
 
-    local_cols, no_maint_cols, _ = build_feature_sets(panel, treatment_mode=treatment_mode)
+    local_cols, no_maint_cols, _, feature_audit = build_feature_sets(panel, treatment_mode=treatment_mode)
     y = np.full((len(years), len(node_ids)), np.nan, dtype=np.float32)
     mask = np.zeros((len(years), len(node_ids)), dtype=bool)
     x_with = np.full((len(years), len(node_ids), len(local_cols)), np.nan, dtype=np.float32)
@@ -738,6 +822,7 @@ def prepare_temporal_data(
         treatment_mode=treatment_mode,
         treatment_category_counts=treatment_counts,
         treatment_semantics=treatment_semantics,
+        feature_audit=feature_audit,
     )
     return data, adjacency
 
@@ -1092,6 +1177,7 @@ def main() -> None:
     }
     treatment_semantics: pd.DataFrame | None = None
     treatment_category_counts: pd.DataFrame | None = None
+    selected_feature_audit: pd.DataFrame | None = None
 
     selected_summary = None
     selected_bundle = None
@@ -1195,6 +1281,8 @@ def main() -> None:
             treatment_semantics = data.treatment_semantics
         if data.treatment_category_counts is not None:
             treatment_category_counts = data.treatment_category_counts
+        if data.feature_audit is not None and (selected_feature_audit is None or treatment_mode == args.treatment_mode):
+            selected_feature_audit = data.feature_audit.assign(treatment_mode=treatment_mode)
 
     ablation_df = pd.DataFrame(ablation_rows)
     ablation_df.to_csv(REPORT_DIR / "treatment_feature_ablation.csv", index=False)
