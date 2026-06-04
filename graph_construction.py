@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import math
 from dataclasses import dataclass
 from pathlib import Path
@@ -19,11 +20,18 @@ def log(message: str):
     print(f"[graph_construction] {message}")
 DATA_DIR = ROOT / "Research Data"
 GRAPH_DIR = ROOT / "graph_data"
+MATERIALS_PATH = GRAPH_DIR / "section_materials.csv"
 SPATIAL_K = 8
 SPATIAL_MAX_DISTANCE_KM = 80.0
 ROUTE_MAX_DISTANCE_KM = 100.0
 SIMILARITY_K = 5
 SIMILARITY_MAX_DISTANCE_KM = 80.0
+DEFAULT_FUNCTIONAL_WEIGHTS = {
+    "spatial": 0.40,
+    "traffic": 0.15,
+    "climate": 0.20,
+    "pavement": 0.25,
+}
 
 CONTIGUOUS_US_STATES = {
     'Alabama', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut',
@@ -393,6 +401,122 @@ def load_project_events() -> pd.DataFrame:
     return result
 
 
+def load_section_materials() -> pd.DataFrame:
+    """Load anti-leakage section material summaries when available."""
+
+    if not MATERIALS_PATH.exists():
+        log("No section_materials.csv found; pavement similarity will use legacy structural fields only")
+        return pd.DataFrame(columns=["node_id_join"])
+
+    materials = pd.read_csv(MATERIALS_PATH, low_memory=False)
+    if "node_id_join" not in materials.columns:
+        log("section_materials.csv is missing node_id_join; skipping materials merge")
+        return pd.DataFrame(columns=["node_id_join"])
+
+    keep_cols = [
+        col
+        for col in [
+            "node_id_join",
+            "construction_no_snapshot",
+            "n_layers",
+            "total_thickness_mm",
+            "max_layer_thickness_mm",
+            "surface_thickness_mm",
+            "binder_thickness_mm",
+            "base_thickness_mm",
+            "subbase_thickness_mm",
+            "subgrade_thickness_mm",
+            "has_ac_layer",
+            "has_pcc_layer",
+            "surface_is_ac",
+            "surface_is_pcc",
+            "has_bound_base",
+            "has_granular_base",
+            "has_subbase_layer",
+            "has_engineering_fabric",
+            "has_stabilized_layer",
+            "n_bound_layers",
+            "n_unbound_layers",
+            "material_codes",
+            "material_labels",
+            "material_text",
+        ]
+        if col in materials.columns
+    ]
+    materials = materials[keep_cols].drop_duplicates(subset=["node_id_join"]).copy()
+    for col in [
+        "construction_no_snapshot",
+        "n_layers",
+        "total_thickness_mm",
+        "max_layer_thickness_mm",
+        "surface_thickness_mm",
+        "binder_thickness_mm",
+        "base_thickness_mm",
+        "subbase_thickness_mm",
+        "subgrade_thickness_mm",
+        "has_ac_layer",
+        "has_pcc_layer",
+        "surface_is_ac",
+        "surface_is_pcc",
+        "has_bound_base",
+        "has_granular_base",
+        "has_subbase_layer",
+        "has_engineering_fabric",
+        "has_stabilized_layer",
+        "n_bound_layers",
+        "n_unbound_layers",
+    ]:
+        if col in materials.columns:
+            materials[col] = pd.to_numeric(materials[col], errors="coerce")
+    log(f"Loaded materials summary for {len(materials)} sections from {MATERIALS_PATH.name}")
+    return materials
+
+
+def normalize_functional_weights(weights: dict[str, float] | None = None) -> dict[str, float]:
+    """Return a normalized spatial/traffic/climate/pavement weight configuration."""
+
+    config = DEFAULT_FUNCTIONAL_WEIGHTS.copy()
+    if weights:
+        config.update({key: float(value) for key, value in weights.items() if key in config})
+    total = sum(max(value, 0.0) for value in config.values())
+    if total <= 0:
+        return DEFAULT_FUNCTIONAL_WEIGHTS.copy()
+    return {key: max(value, 0.0) / total for key, value in config.items()}
+
+
+def mixed_pavement_similarity(
+    left: pd.Series,
+    right: pd.Series,
+    continuous_cols: list[str],
+    binary_cols: list[str],
+    feature_ranges: dict[str, float],
+) -> float:
+    """Compute a Gower-style similarity across continuous and binary structural features."""
+
+    components: list[float] = []
+    for col in continuous_cols:
+        if col not in left.index or col not in right.index:
+            continue
+        left_val = left[col]
+        right_val = right[col]
+        if pd.isna(left_val) or pd.isna(right_val):
+            continue
+        scale = max(float(feature_ranges.get(col, 1.0)), 1e-6)
+        sim = 1.0 - abs(float(left_val) - float(right_val)) / scale
+        components.append(float(np.clip(sim, 0.0, 1.0)))
+    for col in binary_cols:
+        if col not in left.index or col not in right.index:
+            continue
+        left_val = left[col]
+        right_val = right[col]
+        if pd.isna(left_val) or pd.isna(right_val):
+            continue
+        components.append(1.0 if int(left_val) == int(right_val) else 0.0)
+    if not components:
+        return 0.5
+    return float(np.mean(components))
+
+
 def build_spatial_edges(
     nodes: pd.DataFrame,
     n_neighbors: int = SPATIAL_K,
@@ -478,9 +602,13 @@ def build_functional_edges(
     nodes: pd.DataFrame,
     max_neighbors: int = SIMILARITY_K,
     max_distance_km: float = SIMILARITY_MAX_DISTANCE_KM,
+    similarity_weights: dict[str, float] | None = None,
+    same_state_only: bool = True,
 ) -> pd.DataFrame:
-    """Build sparse similarity edges instead of a full functional-class clique."""
+    """Build sparse same-class edges using traffic, climate, and pavement similarity."""
+
     groups = nodes.dropna(subset=["functional_class", "latitude", "longitude", "state_code"]).copy()
+    weight_cfg = normalize_functional_weights(similarity_weights)
     traffic_cols = [c for c in nodes.columns if c.startswith("traffic_") and np.issubdtype(nodes[c].dtype, np.number)]
     climate_cols = [
         c
@@ -488,9 +616,60 @@ def build_functional_edges(
         if c.startswith(("temp_bind_", "humid_", "precip_", "wind_", "solar_", "temp_year_"))
         and np.issubdtype(nodes[c].dtype, np.number)
     ]
-    structural_cols = [c for c in ["NO_OF_LANES", "LANE_WIDTH", "SECTION_LENGTH"] if c in nodes.columns]
+
+    if "total_thickness_mm" in groups.columns:
+        groups["log_total_thickness_mm"] = np.log1p(pd.to_numeric(groups["total_thickness_mm"], errors="coerce").clip(lower=0.0))
+    if "max_layer_thickness_mm" in groups.columns:
+        groups["log_max_layer_thickness_mm"] = np.log1p(pd.to_numeric(groups["max_layer_thickness_mm"], errors="coerce").clip(lower=0.0))
+    for base_col in ["surface_thickness_mm", "binder_thickness_mm", "base_thickness_mm", "subbase_thickness_mm"]:
+        if base_col in groups.columns:
+            groups[f"log_{base_col}"] = np.log1p(pd.to_numeric(groups[base_col], errors="coerce").clip(lower=0.0))
+    continuous_structural_cols = [
+        c
+        for c in [
+            "NO_OF_LANES",
+            "LANE_WIDTH",
+            "SECTION_LENGTH",
+            "n_layers",
+            "n_bound_layers",
+            "n_unbound_layers",
+            "log_total_thickness_mm",
+            "log_max_layer_thickness_mm",
+            "log_surface_thickness_mm",
+            "log_binder_thickness_mm",
+            "log_base_thickness_mm",
+            "log_subbase_thickness_mm",
+        ]
+        if c in groups.columns and np.issubdtype(groups[c].dtype, np.number)
+    ]
+    binary_structural_cols = [
+        c
+        for c in [
+            "has_ac_layer",
+            "has_pcc_layer",
+            "surface_is_ac",
+            "surface_is_pcc",
+            "has_bound_base",
+            "has_granular_base",
+            "has_subbase_layer",
+            "has_engineering_fabric",
+            "has_stabilized_layer",
+        ]
+        if c in groups.columns
+    ]
+    legacy_structural_cols = [c for c in ["NO_OF_LANES", "LANE_WIDTH", "SECTION_LENGTH"] if c in groups.columns]
+    structural_feature_ranges = {
+        col: float(groups[col].max(skipna=True) - groups[col].min(skipna=True))
+        for col in continuous_structural_cols
+    }
+
     edge_rows = []
-    for (_, func), group in groups.groupby(["state_code", "functional_class"]):
+    grouping_cols = ["state_code", "functional_class"] if same_state_only else ["functional_class"]
+    for group_key, group in groups.groupby(grouping_cols):
+        if same_state_only:
+            _, func = group_key
+        else:
+            func = group_key if not isinstance(group_key, tuple) else group_key[0]
         node_ids = group["node_id"].tolist()
         if len(node_ids) < 2:
             continue
@@ -510,13 +689,22 @@ def build_functional_edges(
                 right = group.iloc[j]
                 traffic_similarity = similarity_from_series(left[traffic_cols], right[traffic_cols]) if traffic_cols else 0.5
                 climate_similarity = similarity_from_series(left[climate_cols], right[climate_cols]) if climate_cols else 0.5
-                pavement_similarity = similarity_from_series(left[structural_cols], right[structural_cols]) if structural_cols else 0.5
+                if continuous_structural_cols or binary_structural_cols:
+                    pavement_similarity = mixed_pavement_similarity(
+                        left,
+                        right,
+                        continuous_structural_cols,
+                        binary_structural_cols,
+                        structural_feature_ranges,
+                    )
+                else:
+                    pavement_similarity = similarity_from_series(left[legacy_structural_cols], right[legacy_structural_cols]) if legacy_structural_cols else 0.5
                 spatial_score = float(np.exp(-pair_dist[i, j] / max_distance_km))
                 score = (
-                    0.40 * spatial_score
-                    + 0.15 * traffic_similarity
-                    + 0.20 * climate_similarity
-                    + 0.25 * pavement_similarity
+                    weight_cfg["spatial"] * spatial_score
+                    + weight_cfg["traffic"] * traffic_similarity
+                    + weight_cfg["climate"] * climate_similarity
+                    + weight_cfg["pavement"] * pavement_similarity
                 )
                 scored.append((score, target, float(pair_dist[i, j]), traffic_similarity, climate_similarity, pavement_similarity))
             scored.sort(key=lambda item: (-item[0], item[2]))
@@ -585,6 +773,95 @@ def add_edge_weight_views(edges: pd.DataFrame) -> pd.DataFrame:
         + 0.10 * edge_df["traffic_similarity"]
     )
     return edge_df
+
+
+def compute_components(nodes_df: pd.DataFrame, edges_df: pd.DataFrame) -> pd.Series:
+    """Return a node_id -> component_id mapping for the given graph view."""
+
+    graph = nx.Graph()
+    graph.add_nodes_from(nodes_df["node_id"].astype(str).tolist())
+    if not edges_df.empty:
+        pairs = edges_df[["source", "target"]].astype(str).to_numpy()
+        graph.add_edges_from(pairs)
+    component_id: dict[str, int] = {}
+    for cid, component in enumerate(nx.connected_components(graph)):
+        for node in component:
+            component_id[str(node)] = cid
+    return pd.Series(component_id, name="component_id")
+
+
+def summarise_components(nodes_df: pd.DataFrame, edges_df: pd.DataFrame) -> dict[str, object]:
+    """Summarise connected-component sizes for a graph view."""
+
+    comp = compute_components(nodes_df, edges_df)
+    sizes = comp.value_counts().sort_values(ascending=False)
+    return {
+        "n_components": int(sizes.size),
+        "n_singletons": int((sizes == 1).sum()),
+        "max_size": int(sizes.iloc[0]) if not sizes.empty else 0,
+        "mean_size": float(sizes.mean()) if not sizes.empty else 0.0,
+        "median_size": float(sizes.median()) if not sizes.empty else 0.0,
+        "size_histogram_top10": sizes.head(10).to_dict(),
+    }
+
+
+def filter_by_cluster_size(
+    nodes_df: pd.DataFrame,
+    edges_df: pd.DataFrame,
+    min_size: int,
+) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, int]]:
+    """Keep only nodes whose connected component has at least `min_size` nodes."""
+
+    if min_size <= 1:
+        return nodes_df.copy(), edges_df.copy(), {"kept": len(nodes_df), "dropped": 0, "min_size": int(min_size)}
+    comp = compute_components(nodes_df, edges_df)
+    sizes = comp.value_counts()
+    big_components = set(sizes[sizes >= min_size].index)
+    keep_nodes = comp[comp.isin(big_components)].index.astype(str)
+    kept_nodes_df = nodes_df[nodes_df["node_id"].astype(str).isin(keep_nodes)].copy()
+    kept_edges_df = edges_df[
+        edges_df["source"].astype(str).isin(keep_nodes)
+        & edges_df["target"].astype(str).isin(keep_nodes)
+    ].copy()
+    log_info = {
+        "kept": int(len(kept_nodes_df)),
+        "dropped": int(len(nodes_df) - len(kept_nodes_df)),
+        "min_size": int(min_size),
+        "edges_kept": int(len(kept_edges_df)),
+        "edges_dropped": int(len(edges_df) - len(kept_edges_df)),
+    }
+    return kept_nodes_df, kept_edges_df, log_info
+
+
+def recompute_edge_weights(edges_df: pd.DataFrame, factors) -> pd.DataFrame:
+    """Recompute weight_deterioration with spatial proximity always included.
+
+    Parameters
+    ----------
+    edges_df:
+        Existing edge table with similarity columns already materialised.
+    factors:
+        Iterable subset of {"traffic", "climate", "pavement"}.
+    """
+
+    out = edges_df.copy()
+    distance = pd.to_numeric(out.get("distance_km"), errors="coerce").fillna(100.0)
+    spatial_w = 1.0 / (1.0 + distance / 80.0)
+
+    selected = set(factors) if factors else set()
+    contribs: dict[str, tuple[pd.Series, float]] = {"spatial": (spatial_w, 0.50)}
+    if "traffic" in selected and "traffic_similarity" in out.columns:
+        contribs["traffic"] = (pd.to_numeric(out["traffic_similarity"], errors="coerce").fillna(0.5), 1.0)
+    if "climate" in selected and "climate_similarity" in out.columns:
+        contribs["climate"] = (pd.to_numeric(out["climate_similarity"], errors="coerce").fillna(0.5), 1.0)
+    if "pavement" in selected and "pavement_similarity" in out.columns:
+        contribs["pavement"] = (pd.to_numeric(out["pavement_similarity"], errors="coerce").fillna(0.5), 1.0)
+
+    total_w = sum(weight for _, weight in contribs.values())
+    weight = sum((series * weight) for series, weight in contribs.values()) / total_w
+    out["weight_deterioration"] = weight.astype(float)
+    out["ablation_factors"] = "+".join(["spatial"] + sorted(f for f in selected if f in {"traffic", "climate", "pavement"}))
+    return out
 
 
 def augment_edges(edge_df: pd.DataFrame, nodes: pd.DataFrame) -> pd.DataFrame:
@@ -810,17 +1087,23 @@ def augment_diversion(edges: pd.DataFrame, nodes: pd.DataFrame) -> pd.DataFrame:
     return edge_df
 
 
-def assemble_graph() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def assemble_graph(
+    similarity_weights: dict[str, float] | None = None,
+    same_state_only: bool = True,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     nodes = prepare_node_table()
     climate = load_climate_features()
     distress = load_distress_features()
     traffic = load_traffic_features()
+    materials = load_section_materials()
 
     nodes = nodes.merge(climate, on="node_id_join", how="left")
     if "merra_grid_elevation" in nodes.columns and "elevation" in nodes.columns:
         nodes["elevation"] = pd.to_numeric(nodes["elevation"], errors="coerce").fillna(nodes["merra_grid_elevation"])
     nodes = nodes.merge(distress, on="node_id_join", how="left")
     nodes = nodes.merge(traffic, on="node_id_join", how="left")
+    if not materials.empty:
+        nodes = nodes.merge(materials, on="node_id_join", how="left")
 
     global CLIMATE_REPORT
     if CLIMATE_REPORT:
@@ -829,7 +1112,11 @@ def assemble_graph() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataF
 
     spatial_edges = build_spatial_edges(nodes)
     route_edges = build_route_edges(nodes)
-    functional_edges = build_functional_edges(nodes)
+    functional_edges = build_functional_edges(
+        nodes,
+        similarity_weights=similarity_weights,
+        same_state_only=same_state_only,
+    )
 
     edges = pd.concat([spatial_edges, route_edges, functional_edges], ignore_index=True, sort=False)
     log(f"Concatenated {len(edges)} raw edges")
@@ -932,11 +1219,45 @@ def build_networkx_graph(edges: pd.DataFrame, nodes: pd.DataFrame) -> nx.Graph:
     return G
 
 
+def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments for graph assembly."""
+
+    parser = argparse.ArgumentParser(description="Assemble the pavement interdependency graph.")
+    parser.add_argument(
+        "--min-cluster-size",
+        type=int,
+        default=1,
+        help="If >1, also save a filtered node/edge view keeping only components of at least this size.",
+    )
+    parser.add_argument(
+        "--allow-cross-state-functional-edges",
+        action="store_true",
+        help="Allow same_functional_class edges to connect sections across state boundaries.",
+    )
+    return parser.parse_args()
+
+
 def main():
+    args = parse_args()
     log("Starting graph assembly")
-    nodes, edges, projects, conflicts, node_conflicts = assemble_graph()
+    nodes, edges, projects, conflicts, node_conflicts = assemble_graph(
+        same_state_only=not args.allow_cross_state_functional_edges
+    )
+    before_summary = summarise_components(nodes, edges)
+    log(f"Component summary before cluster filtering: {before_summary}")
+    filtered_nodes = nodes
+    filtered_edges = edges
+    if args.min_cluster_size > 1:
+        filtered_nodes, filtered_edges, filter_info = filter_by_cluster_size(nodes, edges, args.min_cluster_size)
+        after_summary = summarise_components(filtered_nodes, filtered_edges)
+        log(f"Cluster filter applied: {filter_info}")
+        log(f"Component summary after cluster filtering: {after_summary}")
     log("Saving graph data")
     save_graph_data(nodes, edges, projects, conflicts, node_conflicts)
+    if args.min_cluster_size > 1:
+        suffix = f"_minclust{args.min_cluster_size}"
+        filtered_nodes.to_csv(GRAPH_DIR / f"nodes{suffix}.csv", index=False)
+        filtered_edges.to_csv(GRAPH_DIR / f"edges{suffix}.csv", index=False)
     print(f"Nodes: {len(nodes)}")
     print(f"Edges: {len(edges)}")
     print(f"Projects: {len(projects)}")

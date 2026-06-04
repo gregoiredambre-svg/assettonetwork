@@ -1,0 +1,1862 @@
+{
+  "graph_variant": "full_refined",
+  "requested_targets": [
+    "HPMS16_CRACKING_PERCENT_AC",
+    "MEPDG_CRACKING_PERCENT_AC",
+    "ME_PERCENT_WHEEL_PATH_CRACK",
+    "MEPDG_TRANS_CRACK_LENGTH_AC",
+    "LONGIGATOR_CRACKING"
+  ],
+  "kept_targets": [
+    "HPMS16_CRACKING_PERCENT_AC",
+    "MEPDG_CRACKING_PERCENT_AC",
+    "ME_PERCENT_WHEEL_PATH_CRACK",
+    "MEPDG_TRANS_CRACK_LENGTH_AC",
+    "LONGIGATOR_CRACKING"
+  ],
+  "relations": [
+    "spatial",
+    "same_route",
+    "same_functional_class"
+  ],
+  "prep_info": {
+    "graph_variant": "full_refined",
+    "treatment_mode": "experiment",
+    "requested_target_cols": [
+      "HPMS16_CRACKING_PERCENT_AC",
+      "MEPDG_CRACKING_PERCENT_AC",
+      "ME_PERCENT_WHEEL_PATH_CRACK",
+      "MEPDG_TRANS_CRACK_LENGTH_AC",
+      "LONGIGATOR_CRACKING"
+    ],
+    "kept_target_cols": [
+      "HPMS16_CRACKING_PERCENT_AC",
+      "MEPDG_CRACKING_PERCENT_AC",
+      "ME_PERCENT_WHEEL_PATH_CRACK",
+      "MEPDG_TRANS_CRACK_LENGTH_AC",
+      "LONGIGATOR_CRACKING"
+    ],
+    "dropped_target_cols": [],
+    "coverage_summary": {
+      "HPMS16_CRACKING_PERCENT_AC": {
+        "train": 10800,
+        "val": 236,
+        "test": 170
+      },
+      "MEPDG_CRACKING_PERCENT_AC": {
+        "train": 10804,
+        "val": 236,
+        "test": 170
+      },
+      "ME_PERCENT_WHEEL_PATH_CRACK": {
+        "train": 10800,
+        "val": 236,
+        "test": 170
+      },
+      "MEPDG_TRANS_CRACK_LENGTH_AC": {
+        "train": 10692,
+        "val": 236,
+        "test": 170
+      },
+      "LONGIGATOR_CRACKING": {
+        "train": 10808,
+        "val": 236,
+        "test": 170
+      }
+    },
+    "treatment_category_counts": [
+      {
+        "treatment_label": "Missing / not recorded",
+        "count": 2435
+      },
+      {
+        "treatment_label": "Crack Sealing",
+        "count": 665
+      },
+      {
+        "treatment_label": "Patch Pot Holes - Hand Spread, Compacted with Truck",
+        "count": 337
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay",
+        "count": 271
+      },
+      {
+        "treatment_label": "Aggregate Seal Coat",
+        "count": 245
+      },
+      {
+        "treatment_label": "Partial depth patching of PCC pavements at joints",
+        "count": 241
+      },
+      {
+        "treatment_label": "Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing",
+        "count": 193
+      },
+      {
+        "treatment_label": "Skin Patching (hand tools/hot pot to apply liquid asphalt and aggregate)",
+        "count": 191
+      },
+      {
+        "treatment_label": "Mill Off AC and Overlay with AC",
+        "count": 149
+      },
+      {
+        "treatment_label": "Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 137
+      },
+      {
+        "treatment_label": "Manual Premix Spot Patch (hand spreading and compacting with roller)",
+        "count": 114
+      },
+      {
+        "treatment_label": "Grinding Surface",
+        "count": 109
+      },
+      {
+        "treatment_label": "Slurry Seal Coat",
+        "count": 107
+      },
+      {
+        "treatment_label": "Full Depth Patch of AC Pavement (removing damaged material, repairing supporting material, and repairing)",
+        "count": 99
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay",
+        "count": 75
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration",
+        "count": 75
+      },
+      {
+        "treatment_label": "Lane-Shoulder Longitudinal Joint Sealing",
+        "count": 73
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Mill Off AC and Overlay with AC",
+        "count": 71
+      },
+      {
+        "treatment_label": "Mill Existing Pavement and Overlay with Hot-Mix Recycled AC",
+        "count": 68
+      },
+      {
+        "treatment_label": "Full Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 58
+      },
+      {
+        "treatment_label": "Fog Seal Coat",
+        "count": 53
+      },
+      {
+        "treatment_label": "Partial depth patching of PCC pavements at joints, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 51
+      },
+      {
+        "treatment_label": "Crack Sealing, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing",
+        "count": 45
+      },
+      {
+        "treatment_label": "Full Depth Transverse Joint Repair Patch",
+        "count": 45
+      },
+      {
+        "treatment_label": "Strip Patching (using spreader and distributor to apply hot liquid asphalt and aggregate)",
+        "count": 42
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Hot-Mix Recycled Asphalt Concrete Overlay",
+        "count": 34
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Mill Existing Pavement and Overlay with Hot-Mix Recycled AC",
+        "count": 33
+      },
+      {
+        "treatment_label": "Surface Treatment, Single Layer",
+        "count": 33
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Lane-Shoulder Longitudinal Joint Sealing",
+        "count": 30
+      },
+      {
+        "treatment_label": "Machine Premix Patch (placing premix with paver roller)",
+        "count": 29
+      },
+      {
+        "treatment_label": "PCC Slab Replacement",
+        "count": 28
+      },
+      {
+        "treatment_label": "Crack Sealing, Patch Pot Holes - Hand Spread, Compacted with Truck",
+        "count": 27
+      },
+      {
+        "treatment_label": "Mill Existing Pavement and Overlay with Warm Mix Recycled AC",
+        "count": 26
+      },
+      {
+        "treatment_label": "Transverse Joint Sealing",
+        "count": 22
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Mill Off AC and Overlay with AC",
+        "count": 22
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Partial depth patching of PCC pavements at joints",
+        "count": 22
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement",
+        "count": 21
+      },
+      {
+        "treatment_label": "Aggregate Seal Coat, Mill Off AC and Overlay with AC",
+        "count": 20
+      },
+      {
+        "treatment_label": "Hot-Mix Recycled Asphalt Concrete Overlay",
+        "count": 20
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Fracture Treatment of PCC Pavement as Base for New AC Surface",
+        "count": 18
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Fracture Treatment of PCC Pavement as Base for New AC Surface",
+        "count": 18
+      },
+      {
+        "treatment_label": "Longitudinal Subdrains",
+        "count": 17
+      },
+      {
+        "treatment_label": "Full Depth Transverse Joint Repair Patch, Partial depth patching of PCC pavements at joints",
+        "count": 16
+      },
+      {
+        "treatment_label": "Mechanical Premix Patch (using motor grader and roller)",
+        "count": 15
+      },
+      {
+        "treatment_label": "Lane-Shoulder Longitudinal Joint Sealing, Partial depth patching of PCC pavements at joints",
+        "count": 13
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Longitudinal Subdrains, Fracture Treatment of PCC Pavement as Base for New AC Surface",
+        "count": 13
+      },
+      {
+        "treatment_label": "Full Depth Patch of AC Pavement (removing damaged material, repairing supporting material, and repairing), Patch Pot Holes - Hand Spread, Compacted with Truck",
+        "count": 12
+      },
+      {
+        "treatment_label": "Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Full Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 12
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Aggregate Seal Coat",
+        "count": 12
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Longitudinal Subdrains, Fracture Treatment of PCC Pavement as Base for New AC Surface",
+        "count": 12
+      },
+      {
+        "treatment_label": "Crack Sealing, Full Depth Patch of AC Pavement (removing damaged material, repairing supporting material, and repairing)",
+        "count": 11
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Tack Coat, Mill Off AC and Overlay with AC",
+        "count": 11
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Mill Existing Pavement and Overlay with Hot-Mix Recycled AC",
+        "count": 10
+      },
+      {
+        "treatment_label": "Crack Sealing, Lane-Shoulder Longitudinal Joint Sealing",
+        "count": 9
+      },
+      {
+        "treatment_label": "Full Depth Transverse Joint Repair Patch, Full Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 9
+      },
+      {
+        "treatment_label": "Sand Seal Coat",
+        "count": 9
+      },
+      {
+        "treatment_label": "Crack Sealing, Skin Patching (hand tools/hot pot to apply liquid asphalt and aggregate)",
+        "count": 8
+      },
+      {
+        "treatment_label": "Surface Treatment, Double Layer",
+        "count": 8
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Mill Off AC and Overlay with AC",
+        "count": 8
+      },
+      {
+        "treatment_label": "Crack Sealing, Strip Patching (using spreader and distributor to apply hot liquid asphalt and aggregate)",
+        "count": 8
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Mill Existing Pavement and Overlay with Hot-Mix Recycled AC",
+        "count": 8
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Grinding Surface",
+        "count": 7
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Full Depth Transverse Joint Repair Patch",
+        "count": 6
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Partial depth patching of PCC pavements at joints",
+        "count": 6
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Asphalt Concrete Overlay",
+        "count": 6
+      },
+      {
+        "treatment_label": "Manual Premix Spot Patch (hand spreading and compacting with roller), Patch Pot Holes - Hand Spread, Compacted with Truck",
+        "count": 6
+      },
+      {
+        "treatment_label": "Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Partial depth patching of PCC pavements at joints",
+        "count": 6
+      },
+      {
+        "treatment_label": "Crack Sealing, Transverse Joint Sealing",
+        "count": 6
+      },
+      {
+        "treatment_label": "Joint Load Transfer Restoration in PCC Pavements",
+        "count": 6
+      },
+      {
+        "treatment_label": "Longitudinal Subdrains, Fracture Treatment of PCC Pavement as Base for New AC Surface",
+        "count": 6
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Partial depth patching of PCC pavements at joints",
+        "count": 5
+      },
+      {
+        "treatment_label": "Crack Sealing, Full Depth Patch of AC Pavement (removing damaged material, repairing supporting material, and repairing), Patch Pot Holes - Hand Spread, Compacted with Truck",
+        "count": 5
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Partial depth patching of PCC pavements at joints, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 5
+      },
+      {
+        "treatment_label": "Grinding Surface, Partial depth patching of PCC pavements at joints, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 5
+      },
+      {
+        "treatment_label": "Grinding Surface, Asphalt Concrete Overlay",
+        "count": 5
+      },
+      {
+        "treatment_label": "Crack Sealing, Partial depth patching of PCC pavements at joints",
+        "count": 5
+      },
+      {
+        "treatment_label": "Crack Sealing, Skin Patching (hand tools/hot pot to apply liquid asphalt and aggregate), Strip Patching (using spreader and distributor to apply hot liquid asphalt and aggregate)",
+        "count": 5
+      },
+      {
+        "treatment_label": "Mill Existing Pavement and Overlay with Cold-Mix Recycled AC",
+        "count": 5
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Surface Treatment, Single Layer",
+        "count": 5
+      },
+      {
+        "treatment_label": "Fracture Treatment of PCC Pavement as Base for New AC Surface",
+        "count": 5
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Asphalt Concrete Overlay, Longitudinal Subdrains, Fracture Treatment of PCC Pavement as Base for New AC Surface",
+        "count": 5
+      },
+      {
+        "treatment_label": "Full Depth Transverse Joint Repair Patch, Joint Load Transfer Restoration in PCC Pavements",
+        "count": 5
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Portland Cement Concrete Overlay",
+        "count": 5
+      },
+      {
+        "treatment_label": "Portland Cement Concrete Overlay, Longitudinal Subdrains",
+        "count": 5
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Full Depth Transverse Joint Repair Patch",
+        "count": 4
+      },
+      {
+        "treatment_label": "Full Depth Patching of PCC Pavement Other Than at Joint, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 4
+      },
+      {
+        "treatment_label": "Full Depth Transverse Joint Repair Patch, Full Depth Patching of PCC Pavement Other Than at Joint, Joint Load Transfer Restoration in PCC Pavements",
+        "count": 4
+      },
+      {
+        "treatment_label": "Sand Seal Coat, Saw and Seal",
+        "count": 4
+      },
+      {
+        "treatment_label": "Crack Sealing, Manual Premix Spot Patch (hand spreading and compacting with roller)",
+        "count": 4
+      },
+      {
+        "treatment_label": "Full Depth Transverse Joint Repair Patch, PCC Slab Replacement",
+        "count": 4
+      },
+      {
+        "treatment_label": "Partial Depth Patching of PCC Pavement Other Than at Joint, PCC Slab Replacement",
+        "count": 4
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Grinding Surface, Portland Cement Concrete Overlay, Lane-Shoulder Longitudinal Joint Sealing",
+        "count": 4
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Portland Cement Concrete Overlay, Lane-Shoulder Longitudinal Joint Sealing",
+        "count": 4
+      },
+      {
+        "treatment_label": "Other, Mill Existing Pavement and Overlay with Hot-Mix Recycled AC",
+        "count": 4
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Hot-Mix Recycled Asphalt Concrete Overlay, Mill Off AC and Overlay with AC",
+        "count": 4
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Asphalt Concrete Overlay, Fracture Treatment of PCC Pavement as Base for New AC Surface",
+        "count": 4
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Longitudinal Subdrains",
+        "count": 4
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Machine Premix Patch (placing premix with paver roller)",
+        "count": 4
+      },
+      {
+        "treatment_label": "Pressure Grout Subsealing, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing",
+        "count": 4
+      },
+      {
+        "treatment_label": "Hot-Mix Recycled Asphalt Concrete Overlay, Mill Existing Pavement and Overlay with Hot-Mix Recycled AC",
+        "count": 4
+      },
+      {
+        "treatment_label": "Portland Cement Concrete Overlay, PCC Shoulder Restoration",
+        "count": 4
+      },
+      {
+        "treatment_label": "Grinding Surface, Portland Cement Concrete Overlay, Longitudinal Subdrains",
+        "count": 4
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Fog Seal Coat",
+        "count": 4
+      },
+      {
+        "treatment_label": "Crack Sealing, AC Shoulder Restoration, Skin Patching (hand tools/hot pot to apply liquid asphalt and aggregate)",
+        "count": 3
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Longitudinal Subdrains",
+        "count": 3
+      },
+      {
+        "treatment_label": "Full Depth Patch of AC Pavement (removing damaged material, repairing supporting material, and repairing), Mill Off AC and Overlay with AC",
+        "count": 3
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Saw and Seal",
+        "count": 3
+      },
+      {
+        "treatment_label": "Full Depth Patching of PCC Pavement Other Than at Joint, Partial depth patching of PCC pavements at joints",
+        "count": 3
+      },
+      {
+        "treatment_label": "Grinding Surface, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing",
+        "count": 3
+      },
+      {
+        "treatment_label": "Transverse Joint Sealing, Partial depth patching of PCC pavements at joints",
+        "count": 3
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Full Depth Patch of AC Pavement (removing damaged material, repairing supporting material, and repairing)",
+        "count": 3
+      },
+      {
+        "treatment_label": "Crack Sealing, AC Shoulder Restoration",
+        "count": 3
+      },
+      {
+        "treatment_label": "Partial depth patching of PCC pavements at joints, PCC Slab Replacement",
+        "count": 3
+      },
+      {
+        "treatment_label": "Transverse Joint Sealing, Full Depth Transverse Joint Repair Patch",
+        "count": 3
+      },
+      {
+        "treatment_label": "Lane-Shoulder Longitudinal Joint Sealing, PCC Slab Replacement",
+        "count": 3
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Mill Existing Pavement and Overlay with Hot-Mix Recycled AC",
+        "count": 3
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Hot-Mix Recycled Asphalt Concrete Overlay",
+        "count": 3
+      },
+      {
+        "treatment_label": "Crack Sealing, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 3
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Full Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 3
+      },
+      {
+        "treatment_label": "Full Depth Transverse Joint Repair Patch, Full Depth Patching of PCC Pavement Other Than at Joint, Joint Load Transfer Restoration in PCC Pavements, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 3
+      },
+      {
+        "treatment_label": "Full Depth Transverse Joint Repair Patch, Joint Load Transfer Restoration in PCC Pavements, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 3
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Longitudinal Subdrains, Full Depth Transverse Joint Repair Patch, Joint Load Transfer Restoration in PCC Pavements",
+        "count": 3
+      },
+      {
+        "treatment_label": "Grooving Surface",
+        "count": 3
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Grinding Surface, Portland Cement Concrete Overlay",
+        "count": 3
+      },
+      {
+        "treatment_label": "Crack Sealing, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 2
+      },
+      {
+        "treatment_label": "Full Depth Transverse Joint Repair Patch, Full Depth Patching of PCC Pavement Other Than at Joint, PCC Slab Replacement",
+        "count": 2
+      },
+      {
+        "treatment_label": "Crack Sealing, Aggregate Seal Coat",
+        "count": 2
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Full Depth Transverse Joint Repair Patch, Partial depth patching of PCC pavements at joints",
+        "count": 2
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 2
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Other, PCC Slab Replacement",
+        "count": 2
+      },
+      {
+        "treatment_label": "Full Depth Transverse Joint Repair Patch, Partial depth patching of PCC pavements at joints, PCC Slab Replacement",
+        "count": 2
+      },
+      {
+        "treatment_label": "Full Depth Transverse Joint Repair Patch, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 2
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Patch Pot Holes - Hand Spread, Compacted with Truck, Hot-Mix Recycled Asphalt Concrete Overlay",
+        "count": 2
+      },
+      {
+        "treatment_label": "Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Partial depth patching of PCC pavements at joints, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 2
+      },
+      {
+        "treatment_label": "Grinding Surface, Partial depth patching of PCC pavements at joints",
+        "count": 2
+      },
+      {
+        "treatment_label": "Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Full Depth Transverse Joint Repair Patch",
+        "count": 2
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Mill Existing Pavement and Overlay with Cold-Mix Recycled AC",
+        "count": 2
+      },
+      {
+        "treatment_label": "Patch Pot Holes - Hand Spread, Compacted with Truck, Surface Treatment, Single Layer",
+        "count": 2
+      },
+      {
+        "treatment_label": "Grinding Surface, Patch Pot Holes - Hand Spread, Compacted with Truck, Joint Load Transfer Restoration in PCC Pavements",
+        "count": 2
+      },
+      {
+        "treatment_label": "Grinding Surface, Patch Pot Holes - Hand Spread, Compacted with Truck, Full Depth Transverse Joint Repair Patch, Joint Load Transfer Restoration in PCC Pavements",
+        "count": 2
+      },
+      {
+        "treatment_label": "Grinding Surface, Full Depth Transverse Joint Repair Patch, Joint Load Transfer Restoration in PCC Pavements",
+        "count": 2
+      },
+      {
+        "treatment_label": "Manual Premix Spot Patch (hand spreading and compacting with roller), Lane-Shoulder Longitudinal Joint Sealing",
+        "count": 2
+      },
+      {
+        "treatment_label": "Grinding Surface, Transverse Joint Sealing, Full Depth Transverse Joint Repair Patch, Partial depth patching of PCC pavements at joints",
+        "count": 2
+      },
+      {
+        "treatment_label": "Grinding Surface, Patch Pot Holes - Hand Spread, Compacted with Truck",
+        "count": 2
+      },
+      {
+        "treatment_label": "Crack Sealing, Machine Premix Patch (placing premix with paver roller)",
+        "count": 2
+      },
+      {
+        "treatment_label": "Patch Pot Holes - Hand Spread, Compacted with Truck, Fog Seal Coat",
+        "count": 2
+      },
+      {
+        "treatment_label": "Grinding Surface, Joint Load Transfer Restoration in PCC Pavements",
+        "count": 2
+      },
+      {
+        "treatment_label": "Pressure Grout Subsealing, Longitudinal Subdrains",
+        "count": 2
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Grinding Surface, Transverse Joint Sealing, Longitudinal Subdrains",
+        "count": 2
+      },
+      {
+        "treatment_label": "Grinding Surface, Full Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 2
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Fog Seal Coat, Mill Off AC and Overlay with AC",
+        "count": 2
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Warm Mix AC Overlay with RAP and/or RAS",
+        "count": 2
+      },
+      {
+        "treatment_label": "Other, Mill Existing Pavement and Overlay with Warm Mix Recycled AC",
+        "count": 2
+      },
+      {
+        "treatment_label": "Warm Mix AC Overlay with RAP and/or RAS",
+        "count": 2
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Asphalt Concrete Overlay, Hot-Mix Recycled Asphalt Concrete Overlay",
+        "count": 2
+      },
+      {
+        "treatment_label": "Aggregate Seal Coat, Hot-Mix Recycled Asphalt Concrete Overlay",
+        "count": 2
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Asphalt Concrete Overlay, Saw and Seal",
+        "count": 2
+      },
+      {
+        "treatment_label": "Full Depth Transverse Joint Repair Patch, Other",
+        "count": 2
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Full Depth Transverse Joint Repair Patch, PCC Slab Replacement",
+        "count": 2
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 2
+      },
+      {
+        "treatment_label": "Crack Sealing, Pressure Grout Subsealing, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing",
+        "count": 2
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Machine Premix Patch (placing premix with paver roller), Mill Off AC and Overlay with AC",
+        "count": 2
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Machine Premix Patch (placing premix with paver roller), Mill Existing Pavement and Overlay with Hot-Mix Recycled AC",
+        "count": 2
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Manual Premix Spot Patch (hand spreading and compacting with roller)",
+        "count": 2
+      },
+      {
+        "treatment_label": "Strip Patching (using spreader and distributor to apply hot liquid asphalt and aggregate), Slurry Seal Coat",
+        "count": 2
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Fog Seal Coat",
+        "count": 2
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Tack Coat",
+        "count": 2
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Tack Coat, Mill Existing Pavement and Overlay with Hot-Mix Recycled AC",
+        "count": 2
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Full Depth Transverse Joint Repair Patch",
+        "count": 2
+      },
+      {
+        "treatment_label": "Grinding Surface, Transverse Joint Sealing, Partial depth patching of PCC pavements at joints",
+        "count": 2
+      },
+      {
+        "treatment_label": "Grinding Surface, Portland Cement Concrete Overlay, PCC Shoulder Restoration",
+        "count": 2
+      },
+      {
+        "treatment_label": "Grinding Surface, Portland Cement Concrete Overlay, Full Depth Patching of PCC Pavement Other Than at Joint, PCC Shoulder Restoration",
+        "count": 2
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Grinding Surface, Transverse Joint Sealing, Portland Cement Concrete Overlay, Lane-Shoulder Longitudinal Joint Sealing, Full Depth Transverse Joint Repair Patch",
+        "count": 2
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Asphalt Concrete Overlay, Longitudinal Subdrains, Full Depth Transverse Joint Repair Patch, Fracture Treatment of PCC Pavement as Base for New AC Surface, PCC Slab Replacement",
+        "count": 2
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Asphalt Concrete Overlay, Longitudinal Subdrains",
+        "count": 2
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Mill Off AC and Overlay with AC",
+        "count": 2
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Hot-Mix Recycled Asphalt Concrete Overlay, Mill Existing Pavement and Overlay with Hot-Mix Recycled AC",
+        "count": 2
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Fog Seal Coat, Hot-Mix Recycled Asphalt Concrete Overlay",
+        "count": 2
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Fog Seal Coat, Hot-Mix Recycled Asphalt Concrete Overlay, Mill Existing Pavement and Overlay with Hot-Mix Recycled AC",
+        "count": 2
+      },
+      {
+        "treatment_label": "Crack Sealing, AC Shoulder Restoration, Asphalt Concrete Overlay",
+        "count": 2
+      },
+      {
+        "treatment_label": "Crack Sealing, Asphalt Concrete Overlay",
+        "count": 2
+      },
+      {
+        "treatment_label": "Crack Sealing, Slurry Seal Coat",
+        "count": 2
+      },
+      {
+        "treatment_label": "Longitudinal Subdrains, Joint Load Transfer Restoration in PCC Pavements, Partial depth patching of PCC pavements at joints",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grinding Surface, Transverse Joint Sealing, Full Depth Transverse Joint Repair Patch, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Patch Pot Holes - Hand Spread, Compacted with Truck, Longitudinal Subdrains",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Full Depth Transverse Joint Repair Patch, Saw and Seal",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, AC Shoulder Restoration, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Full Depth Transverse Joint Repair Patch, Partial depth patching of PCC pavements at joints, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Manual Premix Spot Patch (hand spreading and compacting with roller), Machine Premix Patch (placing premix with paver roller)",
+        "count": 1
+      },
+      {
+        "treatment_label": "Full Depth Transverse Joint Repair Patch, Full Depth Patching of PCC Pavement Other Than at Joint, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Lane-Shoulder Longitudinal Joint Sealing",
+        "count": 1
+      },
+      {
+        "treatment_label": "Transverse Subdrainage, Full Depth Transverse Joint Repair Patch, Hot-Mix Recycled Asphalt Concrete Overlay, Full Depth Patching of PCC Pavement Other Than at Joint, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Full Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, AC Shoulder Restoration, Lane-Shoulder Longitudinal Joint Sealing, Partial depth patching of PCC pavements at joints, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Machine Premix Patch (placing premix with paver roller), Patch Pot Holes - Hand Spread, Compacted with Truck",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Full Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grinding Surface, Full Depth Transverse Joint Repair Patch",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grinding Surface, Asphalt Concrete Overlay, Full Depth Patch of AC Pavement (removing damaged material, repairing supporting material, and repairing), Aggregate Seal Coat",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Patch Pot Holes - Hand Spread, Compacted with Truck, Aggregate Seal Coat",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Surface Treatment, Single Layer, Aggregate Seal Coat",
+        "count": 1
+      },
+      {
+        "treatment_label": "Sand Seal Coat, Mill Off AC and Overlay with AC",
+        "count": 1
+      },
+      {
+        "treatment_label": "Surface Treatment, Single Layer, Slurry Seal Coat",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Lane-Shoulder Longitudinal Joint Sealing, Partial depth patching of PCC pavements at joints",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Grinding Surface, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Full Depth Transverse Joint Repair Patch, Full Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Full Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, AC Shoulder Restoration, Grinding Surface, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Partial depth patching of PCC pavements at joints",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grinding Surface, Full Depth Transverse Joint Repair Patch, Full Depth Patching of PCC Pavement Other Than at Joint, Partial depth patching of PCC pavements at joints, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Partial depth patching of PCC pavements at joints, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Mechanical Premix Patch (using motor grader and roller), Full Depth Patch of AC Pavement (removing damaged material, repairing supporting material, and repairing), Patch Pot Holes - Hand Spread, Compacted with Truck",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Transverse Joint Sealing, Full Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Hot-Mix Recycled Asphalt Concrete Overlay, Saw and Seal",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grinding Surface, Asphalt Concrete Overlay, Aggregate Seal Coat",
+        "count": 1
+      },
+      {
+        "treatment_label": "Aggregate Seal Coat, Mill Existing Pavement and Overlay with Hot-Mix Recycled AC",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, AC Shoulder Restoration, Lane-Shoulder Longitudinal Joint Sealing",
+        "count": 1
+      },
+      {
+        "treatment_label": "Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Full Depth Transverse Joint Repair Patch, Partial depth patching of PCC pavements at joints, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Grinding Surface, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Partial depth patching of PCC pavements at joints",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, AC Shoulder Restoration, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Full Depth Transverse Joint Repair Patch, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Manual Premix Spot Patch (hand spreading and compacting with roller), Full Depth Patch of AC Pavement (removing damaged material, repairing supporting material, and repairing)",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Grinding Surface, Patch Pot Holes - Hand Spread, Compacted with Truck",
+        "count": 1
+      },
+      {
+        "treatment_label": "Transverse Joint Sealing, Manual Premix Spot Patch (hand spreading and compacting with roller), Lane-Shoulder Longitudinal Joint Sealing",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Grinding Surface, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Full Depth Transverse Joint Repair Patch, Full Depth Patching of PCC Pavement Other Than at Joint, Partial depth patching of PCC pavements at joints",
+        "count": 1
+      },
+      {
+        "treatment_label": "Longitudinal Subdrains, Full Depth Transverse Joint Repair Patch, Joint Load Transfer Restoration in PCC Pavements, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Grinding Surface, Pressure Grout Subsealing, Transverse Joint Sealing, Longitudinal Subdrains, Full Depth Transverse Joint Repair Patch, Joint Load Transfer Restoration in PCC Pavements, Partial Depth Patching of PCC Pavement Other Than at Joint, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Grinding Surface",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Full Depth Transverse Joint Repair Patch, Full Depth Patching of PCC Pavement Other Than at Joint, Partial depth patching of PCC pavements at joints, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Full Depth Transverse Joint Repair Patch, Full Depth Patching of PCC Pavement Other Than at Joint, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Hot-Mix Recycled Asphalt Concrete Overlay, Full Depth Patching of PCC Pavement Other Than at Joint, Partial depth patching of PCC pavements at joints",
+        "count": 1
+      },
+      {
+        "treatment_label": "Lane-Shoulder Longitudinal Joint Sealing, Mill Off AC and Overlay with AC",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Lane-Shoulder Longitudinal Joint Sealing, Saw and Seal",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Full Depth Patching of PCC Pavement Other Than at Joint, Other, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Partial depth patching of PCC pavements at joints, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Patch Pot Holes - Hand Spread, Compacted with Truck, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Aggregate Seal Coat, Saw and Seal",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, AC Shoulder Restoration, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Machine Premix Patch (placing premix with paver roller), Full Depth Patch of AC Pavement (removing damaged material, repairing supporting material, and repairing)",
+        "count": 1
+      },
+      {
+        "treatment_label": "Skin Patching (hand tools/hot pot to apply liquid asphalt and aggregate), Full Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Full Depth Patching of PCC Pavement Other Than at Joint, Partial depth patching of PCC pavements at joints, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "Patch Pot Holes - Hand Spread, Compacted with Truck, Strip Patching (using spreader and distributor to apply hot liquid asphalt and aggregate)",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grinding Surface, Partial depth patching of PCC pavements at joints, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grinding Surface, PCC Shoulder Restoration",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Grinding Surface, Grooving Surface",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, AC Shoulder Restoration, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Partial depth patching of PCC pavements at joints, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Mechanical Premix Patch (using motor grader and roller)",
+        "count": 1
+      },
+      {
+        "treatment_label": "Lane-Shoulder Longitudinal Joint Sealing, Full Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grinding Surface, Manual Premix Spot Patch (hand spreading and compacting with roller)",
+        "count": 1
+      },
+      {
+        "treatment_label": "Transverse Joint Sealing, Full Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Asphalt Concrete Overlay, Longitudinal Subdrains, Full Depth Transverse Joint Repair Patch, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, AC Shoulder Restoration, Grinding Surface, Transverse Joint Sealing",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Full Depth Transverse Joint Repair Patch, Full Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grinding Surface, Transverse Joint Sealing, Joint Load Transfer Restoration in PCC Pavements, Partial depth patching of PCC pavements at joints",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Full Depth Patch of AC Pavement (removing damaged material, repairing supporting material, and repairing), Mill Off AC and Overlay with AC",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Full Depth Patch of AC Pavement (removing damaged material, repairing supporting material, and repairing), Hot-Mix Recycled Asphalt Concrete Overlay",
+        "count": 1
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Slurry Seal Coat",
+        "count": 1
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Strip Patching (using spreader and distributor to apply hot liquid asphalt and aggregate), Surface Treatment, Single Layer",
+        "count": 1
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Full Depth Patch of AC Pavement (removing damaged material, repairing supporting material, and repairing)",
+        "count": 1
+      },
+      {
+        "treatment_label": "Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Full Depth Patching of PCC Pavement Other Than at Joint, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "Full Depth Patch of AC Pavement (removing damaged material, repairing supporting material, and repairing), Skin Patching (hand tools/hot pot to apply liquid asphalt and aggregate)",
+        "count": 1
+      },
+      {
+        "treatment_label": "Slurry Seal Coat, Heater Scarification, Surface Recycled Asphalt Concrete",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Other",
+        "count": 1
+      },
+      {
+        "treatment_label": "Transverse Joint Sealing, Partial depth patching of PCC pavements at joints, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Grinding Surface, Transverse Joint Sealing, Joint Load Transfer Restoration in PCC Pavements, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grinding Surface, Slab Jacking Depressions",
+        "count": 1
+      },
+      {
+        "treatment_label": "Lane-Shoulder Longitudinal Joint Sealing, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, AC Shoulder Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Full Depth Transverse Joint Repair Patch, Partial depth patching of PCC pavements at joints, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Grooving Surface, Full Depth Patching of PCC Pavement Other Than at Joint, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Skin Patching (hand tools/hot pot to apply liquid asphalt and aggregate), Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grinding Surface, Lane-Shoulder Longitudinal Joint Sealing",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Longitudinal Subdrains",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Transverse Joint Sealing, Joint Load Transfer Restoration in PCC Pavements, Partial depth patching of PCC pavements at joints",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grinding Surface, Transverse Joint Sealing, Full Depth Transverse Joint Repair Patch",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grinding Surface, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Partial depth patching of PCC pavements at joints",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grinding Surface, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Full Depth Transverse Joint Repair Patch, Full Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Lane-Shoulder Longitudinal Joint Sealing, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grinding Surface, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Full Depth Transverse Joint Repair Patch",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grinding Surface, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Full Depth Transverse Joint Repair Patch, Joint Load Transfer Restoration in PCC Pavements, Partial depth patching of PCC pavements at joints",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Transverse Joint Sealing, Saw and Seal",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Grinding Surface, Transverse Joint Sealing, Partial depth patching of PCC pavements at joints",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Saw and Seal",
+        "count": 1
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Saw and Seal",
+        "count": 1
+      },
+      {
+        "treatment_label": "Machine Premix Patch (placing premix with paver roller), Strip Patching (using spreader and distributor to apply hot liquid asphalt and aggregate)",
+        "count": 1
+      },
+      {
+        "treatment_label": "Portland Cement Concrete Overlay, Fracture Treatment of PCC Pavement as Base for New PCC Surface",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Transverse Joint Sealing, Full Depth Patching of PCC Pavement Other Than at Joint, Saw and Seal, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grinding Surface, Full Depth Patching of PCC Pavement Other Than at Joint, Partial depth patching of PCC pavements at joints",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grinding Surface, Surface Treatment, Single Layer",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, AC Shoulder Restoration, Transverse Joint Sealing",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, AC Shoulder Restoration, Pressure Grout Subsealing, Transverse Joint Sealing, Longitudinal Subdrains, Partial depth patching of PCC pavements at joints",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, AC Shoulder Restoration, Grinding Surface, Pressure Grout Subsealing, Transverse Joint Sealing, Longitudinal Subdrains, Partial depth patching of PCC pavements at joints",
+        "count": 1
+      },
+      {
+        "treatment_label": "Tack Coat",
+        "count": 1
+      },
+      {
+        "treatment_label": "Saw and Seal",
+        "count": 1
+      },
+      {
+        "treatment_label": "PCC Shoulder Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Grinding Surface, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "Mill Existing Pavement and Overlay with Warm Mix AC",
+        "count": 1
+      },
+      {
+        "treatment_label": "Surface Treatment, Single Layer, Mill Existing Pavement and Overlay with Hot-Mix Recycled AC",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Asphalt Concrete Overlay, Aggregate Seal Coat",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Asphalt Concrete Overlay, Mill Existing Pavement and Overlay with Hot-Mix Recycled AC",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Heater Scarification, Surface Recycled Asphalt Concrete",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Asphalt Concrete Overlay, Aggregate Seal Coat",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Asphalt Concrete Overlay, Machine Premix Patch (placing premix with paver roller)",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Full Depth Patch of AC Pavement (removing damaged material, repairing supporting material, and repairing), Mill Existing Pavement and Overlay with Hot-Mix Recycled AC",
+        "count": 1
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Hot-Mix Recycled Asphalt Concrete Overlay, Mill Existing Pavement and Overlay with Hot-Mix Recycled AC",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Hot-Mix Recycled Asphalt Concrete Overlay",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Grinding Surface, Transverse Joint Sealing, Full Depth Transverse Joint Repair Patch",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Full Depth Transverse Joint Repair Patch, Saw and Seal",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Grinding Surface, Pressure Grout Subsealing, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Longitudinal Subdrains, Full Depth Transverse Joint Repair Patch",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Pressure Grout Subsealing, Asphalt Concrete Overlay, Longitudinal Subdrains, Full Depth Transverse Joint Repair Patch",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Grinding Surface, Transverse Joint Sealing, Full Depth Transverse Joint Repair Patch",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Grinding Surface, Transverse Joint Sealing, Longitudinal Subdrains, Full Depth Transverse Joint Repair Patch, Joint Load Transfer Restoration in PCC Pavements",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Asphalt Concrete Overlay, Longitudinal Subdrains, Full Depth Transverse Joint Repair Patch, Joint Load Transfer Restoration in PCC Pavements",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grinding Surface, Asphalt Concrete Overlay, Full Depth Patch of AC Pavement (removing damaged material, repairing supporting material, and repairing)",
+        "count": 1
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Longitudinal Subdrains, Full Depth Patching of PCC Pavement Other Than at Joint, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Longitudinal Subdrains, Mill Off AC and Overlay with AC",
+        "count": 1
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Strip Patching (using spreader and distributor to apply hot liquid asphalt and aggregate), Hot-Mix Recycled Asphalt Concrete Overlay",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Hot-Mix Recycled Asphalt Concrete Overlay, Mill Off AC and Overlay with AC",
+        "count": 1
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Portland Cement Concrete Overlay",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Hot-Mix Recycled Asphalt Concrete Overlay, Mill Off AC and Overlay with AC",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Full Depth Transverse Joint Repair Patch, Saw and Seal, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Pressure Grout Subsealing, Asphalt Concrete Overlay, Longitudinal Subdrains, Full Depth Transverse Joint Repair Patch, Joint Load Transfer Restoration in PCC Pavements, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, AC Shoulder Restoration, Grinding Surface, Full Depth Transverse Joint Repair Patch, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Grinding Surface, Pressure Grout Subsealing, Longitudinal Subdrains, Full Depth Transverse Joint Repair Patch, Joint Load Transfer Restoration in PCC Pavements, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Full Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Full Depth Patch of AC Pavement (removing damaged material, repairing supporting material, and repairing), Strip Patching (using spreader and distributor to apply hot liquid asphalt and aggregate)",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Machine Premix Patch (placing premix with paver roller), Hot-Mix Recycled Asphalt Concrete Overlay",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grinding Surface, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Joint Load Transfer Restoration in PCC Pavements",
+        "count": 1
+      },
+      {
+        "treatment_label": "Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Asphalt Concrete Overlay, Full Depth Patch of AC Pavement (removing damaged material, repairing supporting material, and repairing), Longitudinal Subdrains, Transverse Subdrainage, Other",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Asphalt Concrete Overlay, Fog Seal Coat",
+        "count": 1
+      },
+      {
+        "treatment_label": "Pressure Grout Subsealing",
+        "count": 1
+      },
+      {
+        "treatment_label": "Asphalt Subsealing",
+        "count": 1
+      },
+      {
+        "treatment_label": "Asphalt Subsealing, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing",
+        "count": 1
+      },
+      {
+        "treatment_label": "Other, PCC Shoulder Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grinding Surface, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Grinding Surface, Transverse Joint Sealing",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Longitudinal Subdrains, Partial depth patching of PCC pavements at joints",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Grinding Surface, Joint Load Transfer Restoration in PCC Pavements, Partial depth patching of PCC pavements at joints",
+        "count": 1
+      },
+      {
+        "treatment_label": "Full Depth Patching of PCC Pavement Other Than at Joint, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grinding Surface, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Tack Coat, Hot-Mix Recycled Asphalt Concrete Overlay",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Manual Premix Spot Patch (hand spreading and compacting with roller), Tack Coat, Hot-Mix Recycled Asphalt Concrete Overlay",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Manual Premix Spot Patch (hand spreading and compacting with roller), Tack Coat",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Transverse Joint Sealing, Patch Pot Holes - Hand Spread, Compacted with Truck, Lane-Shoulder Longitudinal Joint Sealing, Partial depth patching of PCC pavements at joints, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Transverse Joint Sealing, Full Depth Patching of PCC Pavement Other Than at Joint, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Grinding Surface, Transverse Joint Sealing, Full Depth Patching of PCC Pavement Other Than at Joint, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, AC Shoulder Restoration, Asphalt Concrete Overlay, Transverse Joint Sealing, Full Depth Patching of PCC Pavement Other Than at Joint, Partial Depth Patching of PCC Pavement Other Than at Joint, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, AC Shoulder Restoration, Asphalt Concrete Overlay, Transverse Joint Sealing, Full Depth Patching of PCC Pavement Other Than at Joint, Saw and Seal, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Grinding Surface, Transverse Joint Sealing, Longitudinal Subdrains, Full Depth Patching of PCC Pavement Other Than at Joint, Joint Load Transfer Restoration in PCC Pavements, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, AC Shoulder Restoration, Asphalt Concrete Overlay, Transverse Joint Sealing, Longitudinal Subdrains, Full Depth Patching of PCC Pavement Other Than at Joint, Joint Load Transfer Restoration in PCC Pavements, Partial Depth Patching of PCC Pavement Other Than at Joint, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "Full Depth Transverse Joint Repair Patch, Full Depth Patching of PCC Pavement Other Than at Joint, Partial Depth Patching of PCC Pavement Other Than at Joint, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "Pressure Grout Subsealing, Longitudinal Subdrains, Full Depth Transverse Joint Repair Patch",
+        "count": 1
+      },
+      {
+        "treatment_label": "Hot-Mix Recycled Asphalt Concrete Overlay, Mill Off AC and Overlay with AC",
+        "count": 1
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Longitudinal Subdrains, Joint Load Transfer Restoration in PCC Pavements, Partial depth patching of PCC pavements at joints, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grinding Surface, Transverse Joint Sealing, Full Depth Transverse Joint Repair Patch, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Grinding Surface, Transverse Joint Sealing, Partial depth patching of PCC pavements at joints, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Pressure Grout Subsealing, Asphalt Concrete Overlay, Longitudinal Subdrains, Full Depth Transverse Joint Repair Patch",
+        "count": 1
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Other",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Full Depth Transverse Joint Repair Patch",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Longitudinal Subdrains, Fracture Treatment of PCC Pavement as Base for New AC Surface, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "Full Depth Transverse Joint Repair Patch, Fracture Treatment of PCC Pavement as Base for New AC Surface, Other, Partial Depth Patching of PCC Pavement Other Than at Joint, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grinding Surface, Transverse Joint Sealing, Longitudinal Subdrains, Full Depth Transverse Joint Repair Patch, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Full Depth Patching of PCC Pavement Other Than at Joint, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Longitudinal Subdrains, Full Depth Transverse Joint Repair Patch, Full Depth Patching of PCC Pavement Other Than at Joint, Partial Depth Patching of PCC Pavement Other Than at Joint, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Grinding Surface, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Full Depth Transverse Joint Repair Patch, Partial depth patching of PCC pavements at joints, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Longitudinal Subdrains, Full Depth Transverse Joint Repair Patch, Joint Load Transfer Restoration in PCC Pavements",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Full Depth Transverse Joint Repair Patch, Joint Load Transfer Restoration in PCC Pavements, Partial depth patching of PCC pavements at joints, Saw and Seal",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Longitudinal Subdrains, Full Depth Transverse Joint Repair Patch, Joint Load Transfer Restoration in PCC Pavements, Partial depth patching of PCC pavements at joints",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Full Depth Transverse Joint Repair Patch, Joint Load Transfer Restoration in PCC Pavements, Partial depth patching of PCC pavements at joints",
+        "count": 1
+      },
+      {
+        "treatment_label": "Strip Patching (using spreader and distributor to apply hot liquid asphalt and aggregate), Aggregate Seal Coat",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Asphalt Concrete Overlay, Longitudinal Subdrains, Full Depth Transverse Joint Repair Patch, Joint Load Transfer Restoration in PCC Pavements, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Restoration, Pressure Grout Subsealing, Asphalt Concrete Overlay, Longitudinal Subdrains, Full Depth Transverse Joint Repair Patch, Joint Load Transfer Restoration in PCC Pavements, Partial Depth Patching of PCC Pavement Other Than at Joint, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, AC Shoulder Restoration, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Fog Seal Coat",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Grinding Surface, Asphalt Concrete Overlay, Longitudinal Subdrains",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Grinding Surface, Asphalt Concrete Overlay, Full Depth Transverse Joint Repair Patch, Saw and Seal",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Transverse Joint Sealing, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Grinding Surface, Transverse Joint Sealing, Full Depth Transverse Joint Repair Patch, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grooving Surface, Asphalt Concrete Overlay, Transverse Joint Sealing, Saw and Seal, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Asphalt Concrete Overlay, Longitudinal Subdrains, Full Depth Transverse Joint Repair Patch, Partial Depth Patching of PCC Pavement Other Than at Joint, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Portland Cement Concrete Overlay, Longitudinal Subdrains, Fracture Treatment of PCC Pavement as Base for New AC Surface",
+        "count": 1
+      },
+      {
+        "treatment_label": "AC Shoulder Replacement, Manual Premix Spot Patch (hand spreading and compacting with roller)",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Transverse Joint Sealing, Full Depth Transverse Joint Repair Patch",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Pressure Grout Subsealing, Full Depth Transverse Joint Repair Patch, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Full Depth Transverse Joint Repair Patch, Partial depth patching of PCC pavements at joints",
+        "count": 1
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Transverse Joint Sealing, Full Depth Transverse Joint Repair Patch, Partial depth patching of PCC pavements at joints, Saw and Seal",
+        "count": 1
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Longitudinal Subdrains, Full Depth Transverse Joint Repair Patch, Partial depth patching of PCC pavements at joints",
+        "count": 1
+      },
+      {
+        "treatment_label": "Asphalt Concrete Overlay, Aggregate Seal Coat, Mill Off AC and Overlay with AC",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grinding Surface, Transverse Joint Sealing, Longitudinal Subdrains, Full Depth Transverse Joint Repair Patch, Partial depth patching of PCC pavements at joints",
+        "count": 1
+      },
+      {
+        "treatment_label": "Skin Patching (hand tools/hot pot to apply liquid asphalt and aggregate), Slurry Seal Coat",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, Grinding Surface, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Longitudinal Subdrains, Full Depth Transverse Joint Repair Patch, Joint Load Transfer Restoration in PCC Pavements, Partial Depth Patching of PCC Pavement Other Than at Joint, PCC Slab Replacement",
+        "count": 1
+      },
+      {
+        "treatment_label": "Crack Sealing, AC Shoulder Replacement, Transverse Joint Sealing, Lane-Shoulder Longitudinal Joint Sealing, Partial Depth Patching of PCC Pavement Other Than at Joint",
+        "count": 1
+      },
+      {
+        "treatment_label": "Grinding Surface, Transverse Joint Sealing",
+        "count": 1
+      }
+    ],
+    "treatment_semantics_rows": 5
+  },
+  "results": [
+    {
+      "target": "HPMS16_CRACKING_PERCENT_AC",
+      "transform": "identity",
+      "winsor_cap": null,
+      "coverage_pct": 99.75566923722992,
+      "zero_pct_observed": 45.64102564102564,
+      "r2_train": 0.5328963599181291,
+      "r2_val": 0.4762772595652164,
+      "r2_test": 0.45438823028137565,
+      "mae_test": 8.59148412031286,
+      "rmse_test": 11.387843029912275,
+      "smape_test": 141.97747667115448,
+      "n_train": 10800,
+      "n_val": 236,
+      "n_test": 170,
+      "modelling_note": "Stable headline cracking target with broad coverage; suitable for standard regression."
+    },
+    {
+      "target": "MEPDG_CRACKING_PERCENT_AC",
+      "transform": "identity",
+      "winsor_cap": null,
+      "coverage_pct": 99.83965793693211,
+      "zero_pct_observed": 64.530437442643,
+      "r2_train": 0.4412527110543588,
+      "r2_val": 0.3050535618806183,
+      "r2_test": 0.5424480251970898,
+      "mae_test": 5.690203424061046,
+      "rmse_test": 9.403491667527145,
+      "smape_test": 161.26359812377493,
+      "n_train": 10804,
+      "n_val": 236,
+      "n_test": 170,
+      "modelling_note": "Broader alligator-cracking measure; also strong enough for direct regression."
+    },
+    {
+      "target": "ME_PERCENT_WHEEL_PATH_CRACK",
+      "transform": "identity",
+      "winsor_cap": null,
+      "coverage_pct": NaN,
+      "zero_pct_observed": NaN,
+      "r2_train": 0.5322080903895137,
+      "r2_val": 0.4754989309599573,
+      "r2_test": 0.44108251965485046,
+      "mae_test": 5.35644905426923,
+      "rmse_test": 7.029957032566886,
+      "smape_test": 146.03199755026512,
+      "n_train": 10800,
+      "n_val": 236,
+      "n_test": 170,
+      "modelling_note": ""
+    },
+    {
+      "target": "MEPDG_TRANS_CRACK_LENGTH_AC",
+      "transform": "log1p_winsor99",
+      "winsor_cap": 7678.260000000002,
+      "coverage_pct": 98.70199282278384,
+      "zero_pct_observed": 40.38059874680901,
+      "r2_train": -0.05112825327604842,
+      "r2_val": -0.05633589797265892,
+      "r2_test": 0.007657852650616248,
+      "mae_test": 1001.9263607499354,
+      "rmse_test": 1971.7383666548367,
+      "smape_test": 145.0852592702678,
+      "n_train": 10692,
+      "n_val": 236,
+      "n_test": 170,
+      "modelling_note": "Right-skewed length metric; needs log-style transform and careful error interpretation."
+    },
+    {
+      "target": "LONGIGATOR_CRACKING",
+      "transform": "identity",
+      "winsor_cap": null,
+      "coverage_pct": NaN,
+      "zero_pct_observed": NaN,
+      "r2_train": 0.49605368032105823,
+      "r2_val": 0.2979656899192076,
+      "r2_test": 0.4353949237810909,
+      "mae_test": 34.5543063815464,
+      "rmse_test": 54.05557353346543,
+      "smape_test": 157.6223593647982,
+      "n_train": 10808,
+      "n_val": 236,
+      "n_test": 170,
+      "modelling_note": ""
+    }
+  ],
+  "per_target_metrics": {
+    "HPMS16_CRACKING_PERCENT_AC": {
+      "train": {
+        "r2": 0.5328963599181291,
+        "mae": 6.9441114577733805,
+        "rmse": 10.528702018214487,
+        "smape": 131.0666626503908,
+        "mape": 201322.60042330934,
+        "n_samples": 10800
+      },
+      "val": {
+        "r2": 0.4762772595652164,
+        "mae": 7.20783442763959,
+        "rmse": 11.36391231851054,
+        "smape": 150.848773026959,
+        "mape": 200663.3268353137,
+        "n_samples": 236
+      },
+      "test": {
+        "r2": 0.45438823028137565,
+        "mae": 8.59148412031286,
+        "rmse": 11.387843029912275,
+        "smape": 141.97747667115448,
+        "mape": 297952.588538725,
+        "n_samples": 170
+      }
+    },
+    "MEPDG_CRACKING_PERCENT_AC": {
+      "train": {
+        "r2": 0.4412527110543588,
+        "mae": 5.078474982350965,
+        "rmse": 9.451020263286733,
+        "smape": 155.84204698300877,
+        "mape": 198572.33043355265,
+        "n_samples": 10804
+      },
+      "val": {
+        "r2": 0.3050535618806183,
+        "mae": 4.237165335881508,
+        "rmse": 8.49941932938665,
+        "smape": 164.5272666123088,
+        "mape": 133126.03936564224,
+        "n_samples": 236
+      },
+      "test": {
+        "r2": 0.5424480251970898,
+        "mae": 5.690203424061046,
+        "rmse": 9.403491667527145,
+        "smape": 161.26359812377493,
+        "mape": 232787.19334963558,
+        "n_samples": 170
+      }
+    },
+    "ME_PERCENT_WHEEL_PATH_CRACK": {
+      "train": {
+        "r2": 0.5322080903895137,
+        "mae": 4.248602126276603,
+        "rmse": 6.439085766310317,
+        "smape": 136.02299854139923,
+        "mape": 145372.16435399023,
+        "n_samples": 10800
+      },
+      "val": {
+        "r2": 0.4754989309599573,
+        "mae": 4.429506479683569,
+        "rmse": 6.953877116300218,
+        "smape": 153.6087417209769,
+        "mape": 146725.16249659244,
+        "n_samples": 236
+      },
+      "test": {
+        "r2": 0.44108251965485046,
+        "mae": 5.35644905426923,
+        "rmse": 7.029957032566886,
+        "smape": 146.03199755026512,
+        "mape": 225376.88336708103,
+        "n_samples": 170
+      }
+    },
+    "MEPDG_TRANS_CRACK_LENGTH_AC": {
+      "train": {
+        "r2": -0.05112825327604842,
+        "mae": 849.9600855476463,
+        "rmse": 1708.8440855638623,
+        "smape": 149.75358880502972,
+        "mape": 1790491.213267638,
+        "n_samples": 10692
+      },
+      "val": {
+        "r2": -0.05633589797265892,
+        "mae": 1067.8085937601184,
+        "rmse": 1901.5898100291276,
+        "smape": 157.38018162031898,
+        "mape": 1005761.6547906778,
+        "n_samples": 236
+      },
+      "test": {
+        "r2": 0.007657852650616248,
+        "mae": 1001.9263607499354,
+        "rmse": 1971.7383666548367,
+        "smape": 145.0852592702678,
+        "mape": 1788486.9738124714,
+        "n_samples": 170
+      }
+    },
+    "LONGIGATOR_CRACKING": {
+      "train": {
+        "r2": 0.49605368032105823,
+        "mae": 32.059165753043644,
+        "rmse": 55.73913333253016,
+        "smape": 138.59739479451724,
+        "mape": 884007.8633883933,
+        "n_samples": 10808
+      },
+      "val": {
+        "r2": 0.2979656899192076,
+        "mae": 26.12699439433419,
+        "rmse": 49.969437926354175,
+        "smape": 159.77088740180068,
+        "mape": 638012.6816246684,
+        "n_samples": 236
+      },
+      "test": {
+        "r2": 0.4353949237810909,
+        "mae": 34.5543063815464,
+        "rmse": 54.05557353346543,
+        "smape": 157.6223593647982,
+        "mape": 1010924.6401319312,
+        "n_samples": 170
+      }
+    }
+  }
+}

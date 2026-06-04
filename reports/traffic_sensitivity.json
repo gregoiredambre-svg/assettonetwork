@@ -1,0 +1,106 @@
+{
+  "traffic_metric_column": "ANNUAL_GESAL_TREND",
+  "traffic_metric_kind": "proxy",
+  "n_events_with_valid_pre_post": 4627,
+  "n_controls": 55436,
+  "event_mean_delta": 10608.91306217256,
+  "control_mean_delta": 16624.942670588145,
+  "event_mean_rel_delta": 0.34490662059634103,
+  "control_mean_rel_delta": 0.9707576099794842,
+  "event_mean_delta_pre_to_event": -39888.343667564215,
+  "event_mean_delta_pre_to_post2": 17496.80486430947,
+  "welch_t_stat_events_vs_controls": -3.3957164791103582,
+  "welch_p_value_events_vs_controls": 0.0006887309681561716,
+  "per_group_summary": [
+    {
+      "treatment_group": "asphalt_overlay",
+      "n_events": 878,
+      "mean_delta": 22873.16776449,
+      "median_delta": 6632.0,
+      "mean_rel_delta": 0.14018672743749677,
+      "median_rel_delta": 0.04405949040826396,
+      "t_stat_vs_zero": 6.520330784938184,
+      "p_value_vs_zero": 1.1830704093131304e-10
+    },
+    {
+      "treatment_group": "crack_sealing",
+      "n_events": 952,
+      "mean_delta": 8901.248538582098,
+      "median_delta": 6510.0,
+      "mean_rel_delta": 1.093291446246415,
+      "median_rel_delta": 0.05217027411701747,
+      "t_stat_vs_zero": 2.45885976677588,
+      "p_value_vs_zero": 0.014115124287267028
+    },
+    {
+      "treatment_group": "grinding",
+      "n_events": 87,
+      "mean_delta": 19391.480021893814,
+      "median_delta": 17242.0,
+      "mean_rel_delta": 0.34600542630408676,
+      "median_rel_delta": 0.049160707339696595,
+      "t_stat_vs_zero": 2.7303218220869003,
+      "p_value_vs_zero": 0.007674302983705949
+    },
+    {
+      "treatment_group": "patching",
+      "n_events": 1033,
+      "mean_delta": 6939.490347500731,
+      "median_delta": 4529.333333333343,
+      "mean_rel_delta": 0.09346060132961859,
+      "median_rel_delta": 0.03935998480676099,
+      "t_stat_vs_zero": 1.4069878973059564,
+      "p_value_vs_zero": 0.15973205801686038
+    },
+    {
+      "treatment_group": "reconstruction_or_major_rehab",
+      "n_events": 37,
+      "mean_delta": 22663.077413127416,
+      "median_delta": 23271.0,
+      "mean_rel_delta": 0.03286831496178789,
+      "median_rel_delta": 0.004119063252352855,
+      "t_stat_vs_zero": 1.9914377244664034,
+      "p_value_vs_zero": 0.05406222123885832
+    },
+    {
+      "treatment_group": "seal_coat",
+      "n_events": 336,
+      "mean_delta": 4866.777777777778,
+      "median_delta": 2434.8333333333358,
+      "mean_rel_delta": 0.10644327989486094,
+      "median_rel_delta": 0.0456302372916005,
+      "t_stat_vs_zero": 1.496171571469656,
+      "p_value_vs_zero": 0.13555043439398515
+    },
+    {
+      "treatment_group": "shoulder_restoration",
+      "n_events": 85,
+      "mean_delta": 17845.5746379764,
+      "median_delta": 10179.0,
+      "mean_rel_delta": 0.12327255700192882,
+      "median_rel_delta": 0.03816352688786213,
+      "t_stat_vs_zero": 1.9731184884094701,
+      "p_value_vs_zero": 0.051770455166279455
+    },
+    {
+      "treatment_group": "unknown",
+      "n_events": 1219,
+      "mean_delta": 6304.030762920428,
+      "median_delta": 3418.0,
+      "mean_rel_delta": 0.20658282129395134,
+      "median_rel_delta": 0.037392118443333726,
+      "t_stat_vs_zero": 2.7570576444441333,
+      "p_value_vs_zero": 0.005919529773234263
+    },
+    {
+      "treatment_group": "ALL",
+      "n_events": 4627,
+      "mean_delta": 10608.91306217256,
+      "median_delta": 4756.0,
+      "mean_rel_delta": 0.34490662059634103,
+      "median_rel_delta": 0.04102862966290546,
+      "t_stat_vs_zero": 6.4694092979507385,
+      "p_value_vs_zero": 1.0857736365767874e-10
+    }
+  ]
+}

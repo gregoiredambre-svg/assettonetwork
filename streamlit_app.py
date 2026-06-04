@@ -171,6 +171,8 @@ YEARLY_SERIES_LABELS = {
 
 DISTRESS_LABELS = {
     "HPMS16_CRACKING_PERCENT_AC": "HPMS cracking (%)",
+    "MEPDG_CRACKING_PERCENT_AC": "MEPDG cracking (%)",
+    "MEPDG_TRANS_CRACK_LENGTH_AC": "MEPDG transverse cracking length",
     "GATOR_CRACK_A": "Alligator cracking area",
     "LONG_CRACK_WP_L": "Longitudinal cracking in wheel path",
     "LONG_CRACK_NWP_L": "Longitudinal cracking outside wheel path",
@@ -265,6 +267,7 @@ def node_label(row: pd.Series) -> str:
     return f"{node_id} — {state_name} — {route_txt} — class {func_txt}"
 
 
+@st.cache_data(show_spinner=False)
 def load_nodes() -> pd.DataFrame:
     nodes = pd.read_csv(DATA_DIR / "nodes.csv", low_memory=False)
     nodes = nodes.assign(
@@ -278,12 +281,35 @@ def load_nodes() -> pd.DataFrame:
     return nodes.dropna(subset=["latitude", "longitude"]).copy()
 
 
+@st.cache_data(show_spinner=False)
 def load_projects() -> pd.DataFrame:
     projects = pd.read_csv(DATA_DIR / "projects.csv", low_memory=False)
     projects["node_id"] = projects["node_id"].astype(str)
     return projects
 
 
+@st.cache_data(show_spinner=False)
+def load_core_edges() -> pd.DataFrame:
+    edges = pd.read_csv(DATA_DIR / "edges.csv", low_memory=False)
+    edges["source"] = edges["source"].astype(str)
+    edges["target"] = edges["target"].astype(str)
+    edges["edge_type"] = edges["edge_type"].astype(str)
+    return edges
+
+
+def filter_core_edges_for_variant(edges: pd.DataFrame, variant: str) -> pd.DataFrame:
+    if edges.empty or "edge_type" not in edges.columns:
+        return edges.copy()
+    if variant == "spatial":
+        keep = {"spatial"}
+    elif variant == "spatial_route":
+        keep = {"spatial", "same_route"}
+    else:
+        keep = {"spatial", "same_route", "same_functional_class"}
+    return edges[edges["edge_type"].isin(keep)].copy()
+
+
+@st.cache_data(show_spinner=False)
 def load_variant_bundle(variant: str) -> dict[str, object]:
     bundle: dict[str, object] = {}
     bundle["network_edges"] = pd.read_csv(tagged_graph_path("network_edges_research", variant, ".csv"), low_memory=False)
@@ -295,15 +321,18 @@ def load_variant_bundle(variant: str) -> dict[str, object]:
     return bundle
 
 
+@st.cache_data(show_spinner=False)
 def load_report_csv(name: str) -> pd.DataFrame:
     return pd.read_csv(REPORT_DIR / name, low_memory=False)
 
 
+@st.cache_data(show_spinner=False)
 def load_report_json(name: str) -> dict:
     with open(REPORT_DIR / name, "r", encoding="utf-8") as fh:
         return json.load(fh)
 
 
+@st.cache_data(show_spinner=False)
 def load_optional_report_csv(name: str) -> pd.DataFrame:
     path = REPORT_DIR / name
     if not path.exists():
@@ -311,6 +340,7 @@ def load_optional_report_csv(name: str) -> pd.DataFrame:
     return pd.read_csv(path, low_memory=False)
 
 
+@st.cache_data(show_spinner=False)
 def load_optional_report_json(name: str) -> dict:
     path = REPORT_DIR / name
     if not path.exists():
@@ -319,6 +349,16 @@ def load_optional_report_json(name: str) -> dict:
         return json.load(fh)
 
 
+@st.cache_data(show_spinner=False)
+def load_optional_graph_json(name: str) -> dict:
+    path = DATA_DIR / name
+    if not path.exists():
+        return {}
+    with open(path, "r", encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+@st.cache_data(show_spinner=False)
 def load_inspector_yearly_panel() -> pd.DataFrame:
     nodes = load_nodes()[["node_id", "node_id_join", "state_code", "state_name", "route_key", "functional_class", "merra_id"]].copy()
 
@@ -378,6 +418,7 @@ def load_inspector_yearly_panel() -> pd.DataFrame:
     return panel
 
 
+@st.cache_data(show_spinner=False)
 def load_inspector_distress() -> pd.DataFrame:
     distress_path = RAW_DATA_DIR / "Analysis Ready Distress.xlsx"
     specs = {
@@ -415,6 +456,7 @@ def load_inspector_distress() -> pd.DataFrame:
     return pd.concat(pieces, ignore_index=True)
 
 
+@st.cache_data(show_spinner=False)
 def load_inspector_treatment_events() -> pd.DataFrame:
     events = pd.read_csv(REPORT_DIR / "experiment_section_event_table.csv", low_memory=False)
     events["node_id"] = events["node_id"].astype(str)
@@ -423,6 +465,7 @@ def load_inspector_treatment_events() -> pd.DataFrame:
     return events
 
 
+@st.cache_data(show_spinner=False)
 def add_project_counts(nodes: pd.DataFrame, projects: pd.DataFrame) -> pd.DataFrame:
     counts = projects.groupby("node_id").size().rename("project_count").reset_index()
     frame = nodes.merge(counts, on="node_id", how="left")
@@ -495,6 +538,7 @@ def draw_node_map(
             title=title,
             opacity=0.75,
         )
+        fig.update_traces(marker=dict(color="#1f77b4", size=7))
     if highlight_nodes:
         focus = frame[frame["highlight"]]
         if not focus.empty:
@@ -672,8 +716,15 @@ def draw_network_web(
     return fig
 
 
-def draw_cluster_map(nodes: pd.DataFrame, edges: pd.DataFrame, title: str, height: int = 650) -> go.Figure:
+def draw_cluster_map(
+    nodes: pd.DataFrame,
+    edges: pd.DataFrame,
+    title: str,
+    height: int = 650,
+    min_cluster_size: int = 1,
+) -> go.Figure:
     frame = assign_component_clusters(nodes, edges)
+    frame = frame[frame["cluster_size"] >= int(min_cluster_size)].copy()
     cluster_order = list(frame["cluster_label"].cat.categories)
     fig = px.scatter_geo(
         frame,
@@ -752,16 +803,12 @@ def build_temporal_result_table(treatment_ablation: pd.DataFrame) -> pd.DataFram
     }
     table["Variant"] = table["treatment_mode"].map(friendly_variant)
     table["RF local R²"] = table["rf_test_r2"]
-    table["GCN without project/treatment features R²"] = table["gcn_without_project_treatment_test_r2"]
     table["GCN with project/treatment features R²"] = table["gcn_with_project_treatment_test_r2"]
-    table["GCN gain from treatment features"] = table["gcn_project_treatment_r2_gain"]
     return table[
         [
             "Variant",
             "RF local R²",
-            "GCN without project/treatment features R²",
             "GCN with project/treatment features R²",
-            "GCN gain from treatment features",
         ]
     ]
 
@@ -961,6 +1008,8 @@ def build_data_freshness_table() -> pd.DataFrame:
         ROOT / "graph_data" / "edges.csv",
         REPORT_DIR / "treatment_feature_ablation.csv",
         REPORT_DIR / "part1_rgcn_temporal.csv",
+        REPORT_DIR / "distress_target_profile.csv",
+        REPORT_DIR / "distress_model_comparison.csv",
         REPORT_DIR / "part1_ood_temporal.csv",
         REPORT_DIR / "same_route_real_axis_summary.csv",
         REPORT_DIR / "cracking_correlation_by_edge_type.csv",
@@ -975,6 +1024,7 @@ def show_core_terms_box() -> None:
 
 nodes = add_project_counts(load_nodes(), load_projects())
 projects = load_projects()
+core_edges_all = load_core_edges()
 graph_diag = load_report_csv("graph_diagnostics.csv")
 graph_distance = load_report_csv("graph_distance_summary.csv")
 graph_variant_comparison = load_report_csv("graph_variant_model_comparison.csv")
@@ -984,11 +1034,8 @@ event_by_group = load_report_csv("experiment_event_study_by_group.csv")
 event_classifier = load_report_csv("experiment_event_study_treatment_classifier.csv")
 event_interpretation = load_report_json("experiment_event_study_interpretation.json")
 case_studies = load_report_csv("dissertation_case_study_summaries.csv")
-static_target_defs = load_optional_report_csv("static_target_variable_definitions.csv")
-static_target_worked_example = load_optional_report_csv("static_target_worked_example.csv")
 part1_rgcn = load_report_csv("part1_rgcn_temporal.csv")
-part1_ood_temporal = load_report_csv("part1_ood_temporal.csv")
-part1_ood_static = load_report_csv("part1_ood_static.csv")
+osm_validation_findings = load_optional_graph_json("osm_validation_findings.json")
 osm_comparison_summary = load_report_csv("osm_comparison_summary.csv")
 osm_topology_status = load_report_csv("osm_topology_status_summary.csv")
 osm_meta = load_report_json("osm_comparison_summary.json")
@@ -998,6 +1045,11 @@ cracking_corr_by_edge = load_optional_report_csv("cracking_correlation_by_edge_t
 cracking_corr_spatial_bins = load_optional_report_csv("cracking_correlation_spatial_bins.csv")
 temporal_feature_audit = load_optional_report_csv("temporal_feature_audit.csv")
 temporal_feature_audit_summary = load_optional_report_json("temporal_feature_audit_summary.json")
+materials_weight_sweep = load_optional_report_json("materials_weight_sweep.json")
+materials_weight_sweep_hpms16 = load_optional_report_json("materials_weight_sweep_hpms16.json")
+part1_ood_ensemble_summary = load_optional_report_json("part1_ood_ensemble_summary.json")
+ensemble_results = load_optional_graph_json("ensemble_results.json")
+mepdg_benchmark = load_optional_report_json("mepdg_benchmark.json")
 
 sidebar = st.sidebar
 sidebar.title("Explore the project")
@@ -1034,6 +1086,11 @@ visible_node_ids = set(visible_nodes["node_id"].astype(str))
 visible_edges = filter_edges_for_visible_nodes(network_edges, visible_node_ids)
 selected_view_nodes = visible_nodes if not visible_nodes.empty else nodes
 selected_view_edges = visible_edges if not visible_edges.empty else network_edges
+selected_core_edges = filter_core_edges_for_variant(core_edges_all, graph_variant)
+selected_core_edges = filter_edges_for_visible_nodes(selected_core_edges, visible_node_ids)
+if selected_core_edges.empty and not selected_view_nodes.empty and not core_edges_all.empty:
+    fallback_core = filter_core_edges_for_variant(core_edges_all, graph_variant)
+    selected_core_edges = fallback_core[fallback_core["source"].isin(selected_view_nodes["node_id"]) & fallback_core["target"].isin(selected_view_nodes["node_id"])].copy()
 
 section_lookup = build_section_lookup(selected_view_nodes)
 section_options = sorted(section_lookup.keys())
@@ -1096,7 +1153,7 @@ Start here if you want to see **what one node actually is**: where it is, how tr
         inspector_map = draw_node_map(
             inspector_nodes,
             "Click a point to inspect a road section",
-            color_col="project_count",
+            color_col=None,
             highlight_nodes=[focus_node],
             height=720,
         )
@@ -1414,10 +1471,20 @@ The default view hides corridor links longer than **{corridor_distance_km} km** 
     )
     st.plotly_chart(web_fig, width="stretch")
 
+    min_cluster_size = st.slider(
+        "Minimum cluster size to display",
+        min_value=1,
+        max_value=50,
+        value=1,
+        step=1,
+        help="Hide clusters smaller than this number of nodes so the map can focus on larger connected components.",
+        key="min_cluster_size_cluster_map",
+    )
     cluster_fig = draw_cluster_map(
         selected_view_nodes,
-        web_edges,
+        selected_core_edges,
         title="Connected local clusters in the current filtered graph",
+        min_cluster_size=min_cluster_size,
     )
     st.plotly_chart(cluster_fig, width="stretch")
     st.caption("The graph should usually be read as many local interdependency clusters rather than one seamless national road network.")
@@ -1551,457 +1618,242 @@ with tabs[2]:
     st.markdown("## Models and findings")
     st.markdown(
         """
-This project used **supervised learning**: the models are shown examples with inputs and the correct observed outputs, then learn to predict those outputs for unseen examples.
+This page focuses on the **latest cracking-prediction results** and removes older exploratory branches that are no longer part of the main study story.
 
-There are **two different modelling tasks**, so not every R² in the project measures the same thing:
+The key question is:
 
-- a **static disruption task**: predict the impact of a hypothetical outage scenario on the network,
-- a **temporal deterioration task**: predict next-year cracking for one section.
-"""
-    )
-    st.info(
-        """
-**Quick glossary**
-
-- **Ridge**: a simple linear baseline with regularisation.
-- **RF (Random Forest)**: a strong non-graph baseline that uses section-level features only.
-- **GCN**: a Graph Convolutional Network; it lets neighbouring nodes share information.
-- **R-GCN**: a relation-aware GCN that treats different edge types differently instead of blending them all together.
-- **OOD**: out-of-distribution validation, here meaning tests on held-out states that were not used for training.
-- **OSM**: OpenStreetMap, used here to check whether graph links look plausible on a real road map.
+> **Which model family predicts cracking best, and when does the graph genuinely help?**
 """
     )
 
-    st.markdown("### 1. What exactly is being predicted?")
-    task_cols = st.columns(2)
-    with task_cols[0]:
-        st.markdown(
-            """
-#### Static disruption models
-
-**Question**: if these road sections are closed at the same time, how much disruption does the network experience?
-
-**Input**:
-- a graph variant,
-- a synthetic outage scenario saying which sections are closed,
-- node attributes from the graph.
-
-**Output**:
-- extra travel-time proxy,
-- connectivity loss share,
-- disconnected OD share,
-- overall disruption score.
-"""
+    hpms_rows: list[dict[str, object]] = []
+    hpms_results = ensemble_results.get("results", {}) if isinstance(ensemble_results, dict) else {}
+    if hpms_results:
+        rf_test = hpms_results.get("RF local", {}).get("test", {})
+        rgcn_test = hpms_results.get("R-GCN", {}).get("test", {})
+        ens_test = hpms_results.get("Stacked MLP", {}).get("test", {})
+        hpms_rows.extend(
+            [
+                {
+                    "Target": "HPMS16 cracking",
+                    "Model": "RF local",
+                    "Family": "Asset-level baseline",
+                    "Graph": "No",
+                    "Test R²": safe_float(rf_test.get("r2")),
+                    "Test MAE": safe_float(rf_test.get("mae")),
+                    "Test RMSE": safe_float(rf_test.get("rmse")),
+                },
+                {
+                    "Target": "HPMS16 cracking",
+                    "Model": "R-GCN baseline",
+                    "Family": "Graph-aware",
+                    "Graph": "full_refined",
+                    "Test R²": safe_float(rgcn_test.get("r2")),
+                    "Test MAE": safe_float(rgcn_test.get("mae")),
+                    "Test RMSE": safe_float(rgcn_test.get("rmse")),
+                },
+                {
+                    "Target": "HPMS16 cracking",
+                    "Model": "Stacked MLP ensemble",
+                    "Family": "Hybrid ensemble",
+                    "Graph": "RF + R-GCN",
+                    "Test R²": safe_float(ens_test.get("r2")),
+                    "Test MAE": safe_float(ens_test.get("mae")),
+                    "Test RMSE": safe_float(ens_test.get("rmse")),
+                },
+            ]
         )
-    with task_cols[1]:
-        st.markdown(
-            """
-#### Temporal deterioration models
-
-**Question**: given what section **A** and its neighbours looked like in year **t**, what will the cracking of **A** look like in **t+1**?
-
-**Input**:
-- local section features at year **t**,
-- graph neighbours of that section,
-- optionally treatment/project context from **EXPERIMENT_SECTION**.
-
-**Output**:
-- next-year cracking percentage for the selected pavement measure.
-"""
+    if materials_weight_sweep_hpms16:
+        best_hpms_label = materials_weight_sweep_hpms16.get("best_label")
+        best_hpms_row = next(
+            (row for row in materials_weight_sweep_hpms16.get("results", []) if row.get("label") == best_hpms_label),
+            {},
         )
+        hpms_rows.append(
+            {
+                "Target": "HPMS16 cracking",
+                "Model": f"Refined R-GCN ({best_hpms_label})",
+                "Family": "Graph-aware",
+                "Graph": "full_refined + reweighted materials",
+                "Test R²": safe_float(materials_weight_sweep_hpms16.get("best_test_r2")),
+                "Test MAE": safe_float(best_hpms_row.get("mae_test")),
+                "Test RMSE": safe_float(best_hpms_row.get("rmse_test")),
+            }
+        )
+    hpms_benchmark_df = pd.DataFrame(hpms_rows)
 
-    st.warning(
-        "We predict next-year cracking in the temporal task because it is an observed section-level deterioration target. That is not the same as directly predicting whether a project will happen, which would be a separate classification problem."
-    )
-    st.info(
-        """
-**Two important clarifications**
+    mepdg_benchmark_df = pd.DataFrame(mepdg_benchmark.get("results", [])) if mepdg_benchmark else pd.DataFrame()
+    if not mepdg_benchmark_df.empty:
+        mepdg_benchmark_df = mepdg_benchmark_df.rename(
+            columns={"model": "Model", "r2_test": "Test R²", "mae_test": "Test MAE", "rmse_test": "Test RMSE"}
+        )
+        mepdg_benchmark_df["Target"] = "MEPDG cracking"
+        mepdg_benchmark_df["Family"] = mepdg_benchmark_df["Model"].map(
+            {
+                "RF local": "Asset-level baseline",
+                "R-GCN baseline": "Graph-aware",
+                "Stacked MLP ensemble": "Hybrid ensemble",
+                "R-GCN best materials sweep (climate_pavement)": "Graph-aware",
+            }
+        ).fillna("Other")
+        mepdg_benchmark_df["Graph"] = mepdg_benchmark_df["Model"].map(
+            {
+                "RF local": "No",
+                "R-GCN baseline": "full_refined",
+                "Stacked MLP ensemble": "RF + R-GCN",
+                "R-GCN best materials sweep (climate_pavement)": "full_refined + reweighted materials",
+            }
+        ).fillna("n/a")
 
-- When the model predicts **cracking at t+1**, it is evaluated against the **real recorded cracking value** observed for that section in the next year of the distress panel.
-- The features do **not** all receive the same weight. After scaling and imputation, each model learns its own importance pattern: Ridge learns linear coefficients, Random Forest learns split importance, and GCN learns feature transformations plus neighbour propagation weights.
-"""
-    )
-
-    latest_experiment = treatment_ablation[treatment_ablation["treatment_mode"] == "experiment"].iloc[0]
-    latest_none = treatment_ablation[treatment_ablation["treatment_mode"] == "none"].iloc[0]
-    best_rgcn_row = part1_rgcn.sort_values("test_r2", ascending=False).iloc[0]
-
-    st.markdown("### 2. Shared temporal pipeline")
-    st.markdown(
-        """
-All temporal models in this page start from the **same section-year panel**.
-
-The shared pipeline is:
-1. build one row for each **(road section, year)**,
-2. merge in observed **cracking at year t**, yearly **traffic**, yearly **climate**, and a few **static geometry** variables,
-3. optionally merge **EXPERIMENT_SECTION** treatment/project features,
-4. define the target as **cracking at year t+1**, using the real next observed annual value,
-5. split the panel by year into **train / validation / test**,
-6. impute missing numeric values with the **training median** and standardise features using the **training split only**.
-
-So yes: the temporal models are broadly using the **same pipeline** and the **same prediction target**. What changes between them is the model class and, in some cases, whether treatment/project features are included.
-"""
-    )
-    pipeline_table = pd.DataFrame(
+    cracking_benchmark = pd.concat(
         [
-            ["Ridge", "No graph", "Same next-year cracking target", "Linear baseline on local features only"],
-            ["Random Forest", "No graph", "Same next-year cracking target", "Tree ensemble on local features only"],
-            ["GCN without treatment/project features", f"Graph-aware; current app view focuses on {GRAPH_VARIANTS[graph_variant]}", "Same next-year cracking target", "Graph propagation, but with the reduced feature set"],
-            ["GCN with EXPERIMENT_SECTION features", f"Graph-aware; current app view focuses on {GRAPH_VARIANTS[graph_variant]}", "Same next-year cracking target", "Graph propagation plus treatment/project context"],
-            ["R-GCN", "Reported separately for spatial, spatial + route, and full refined", "Same next-year cracking target", "Same inputs as graph models, but relation-specific message passing"],
-            ["GCN+LSTM", f"Graph-aware; current app view focuses on {GRAPH_VARIANTS[graph_variant]}", "Same next-year cracking target", "Same graph snapshots, but read as a short 3-year sequence"],
+            hpms_benchmark_df[["Target", "Model", "Family", "Graph", "Test R²", "Test MAE", "Test RMSE"]]
+            if not hpms_benchmark_df.empty
+            else pd.DataFrame(),
+            mepdg_benchmark_df[["Target", "Model", "Family", "Graph", "Test R²", "Test MAE", "Test RMSE"]]
+            if not mepdg_benchmark_df.empty
+            else pd.DataFrame(),
         ],
-        columns=["Model", "Graph used for the reported R²", "Output target", "What changes"],
+        ignore_index=True,
     )
-    st.dataframe(pipeline_table, use_container_width=True, hide_index=True)
 
-    st.markdown("### 3. Temporal models: local prediction versus relational signal")
-    temporal_recap = pd.DataFrame(
-        [
-            {
-                "Model": "Ridge temporal baseline",
-                "Input": "Local section features only",
-                "Output": "Next-year cracking",
-                "Why it matters": "Simple linear asset-level baseline.",
-                "Test R²": latest_experiment["ridge_test_r2"],
-            },
-            {
-                "Model": "RF local",
-                "Input": "Local section features only",
-                "Output": "Next-year cracking",
-                "Why it matters": "Best pure asset-level predictor in the project.",
-                "Test R²": latest_experiment["rf_test_r2"],
-            },
-            {
-                "Model": "GCN without project/treatment features",
-                "Input": "Graph neighbours + local section features, but no treatment/project context",
-                "Output": "Next-year cracking",
-                "Why it matters": "Tests whether graph structure alone is enough.",
-                "Test R²": latest_experiment["gcn_without_project_treatment_test_r2"],
-            },
-            {
-                "Model": "GCN with EXPERIMENT_SECTION treatment features",
-                "Input": "Graph neighbours + local section features + treatment/project context",
-                "Output": "Next-year cracking",
-                "Why it matters": "Main evidence that neighbour treatment history carries signal.",
-                "Test R²": latest_experiment["gcn_with_project_treatment_test_r2"],
-            },
-            {
-                "Model": "Best relation-aware graph model (R-GCN)",
-                "Input": "Graph neighbours, local features, and relation-specific message passing",
-                "Output": "Next-year cracking",
-                "Why it matters": "Tests whether distinguishing spatial, route, and class links helps.",
-                "Test R²": best_rgcn_row["test_r2"],
-            },
-        ]
-    )
-    st.dataframe(temporal_recap, use_container_width=True, hide_index=True)
+    hpms_best = safe_float(materials_weight_sweep_hpms16.get("best_test_r2")) if materials_weight_sweep_hpms16 else None
+    hpms_ensemble = safe_float(hpms_results.get("Stacked MLP", {}).get("test", {}).get("r2")) if hpms_results else None
+    mepdg_best = safe_float(materials_weight_sweep.get("best_test_r2")) if materials_weight_sweep else None
+    rf_ood = safe_float(part1_ood_ensemble_summary.get("rf_r2", {}).get("mean")) if part1_ood_ensemble_summary else None
+    ens_ood = safe_float(part1_ood_ensemble_summary.get("ensemble_r2", {}).get("mean")) if part1_ood_ensemble_summary else None
 
     metric_card_row(
         [
-            ("RF local R²", f"{safe_float(latest_experiment['rf_test_r2']):.3f}", "Best absolute temporal predictor using only section-level features."),
-            ("GCN without treatment features", f"{safe_float(latest_experiment['gcn_without_project_treatment_test_r2']):.3f}", "Graph structure plus neighbours, but no treatment/project semantics."),
-            ("GCN with EXPERIMENT_SECTION features", f"{safe_float(latest_experiment['gcn_with_project_treatment_test_r2']):.3f}", "Same graph model after adding treatment/project context."),
-            ("Gain from treatment/project context", f"{safe_float(latest_experiment['gcn_project_treatment_r2_gain']):.3f}", "The relational gain that appears when neighbour treatment history is added."),
-            ("Best R-GCN R²", f"{safe_float(best_rgcn_row['test_r2']):.3f}", "Strongest relation-aware temporal graph result."),
+            ("HPMS16 best overall R²", f"{hpms_ensemble:.3f}" if hpms_ensemble is not None else "n/a", "Latest HPMS16 best overall result: the stacked MLP ensemble."),
+            ("HPMS16 best pure graph R²", f"{hpms_best:.3f}" if hpms_best is not None else "n/a", "Latest HPMS16 best graph-only result after refining the graph weights."),
+            ("MEPDG best result R²", f"{mepdg_best:.3f}" if mepdg_best is not None else "n/a", "Latest MEPDG best result after graph refinement."),
+            ("OOD mean R²: RF vs ensemble", f"{rf_ood:.3f} vs {ens_ood:.3f}" if rf_ood is not None and ens_ood is not None else "n/a", "Held-out-state mean R² on the latest 5-state subset."),
         ]
     )
 
-    temporal_bar = pd.DataFrame(
-        {
-            "Model": [
-                "Ridge temporal baseline",
-                "RF local",
-                "GCN without treatment/project features",
-                "GCN with EXPERIMENT_SECTION features",
-            ],
-            "Test R²": [
-                latest_experiment["ridge_test_r2"],
-                latest_experiment["rf_test_r2"],
-                latest_experiment["gcn_without_project_treatment_test_r2"],
-                latest_experiment["gcn_with_project_treatment_test_r2"],
-            ],
-        }
+    st.markdown("### 1. Cracking benchmark: current headline comparison")
+    st.markdown(
+        """
+- **HPMS16 cracking** is the main benchmark across model families.
+- **MEPDG cracking** is the specialist target where the refined graph currently performs best.
+"""
     )
-    fig_temp = px.bar(temporal_bar, x="Model", y="Test R²", title="Temporal prediction of next-year cracking")
-    st.plotly_chart(fig_temp, width="stretch")
-
-    temporal_variant_rows = graph_variant_comparison[
-        graph_variant_comparison["model_family"] == "temporal"
-    ].copy()
-    temporal_variant_long = temporal_variant_rows.melt(
-        id_vars=["graph_variant"],
-        value_vars=[
-            "ridge_test_r2",
-            "rf_test_r2",
-            "gcn_without_maint_r2",
-            "gcn_with_maint_r2",
-        ],
-        var_name="metric",
-        value_name="test_r2",
-    )
-    temporal_variant_long["Model"] = temporal_variant_long["metric"].replace(
-        {
-            "ridge_test_r2": "Ridge temporal baseline",
-            "rf_test_r2": "RF local",
-            "gcn_without_maint_r2": "GCN without treatment/project features",
-            "gcn_with_maint_r2": "GCN with EXPERIMENT_SECTION features",
-        }
-    )
-    temporal_variant_long["Graph variant"] = temporal_variant_long["graph_variant"].map(GRAPH_VARIANTS)
-
-    rgcn_long = part1_rgcn.copy()
-    rgcn_long["Model"] = "Best relation-aware graph model (R-GCN)"
-    rgcn_long["Graph variant"] = rgcn_long["graph_variant"].map(GRAPH_VARIANTS)
-    rgcn_long = rgcn_long.rename(columns={"test_r2": "test_r2"})[["Model", "Graph variant", "test_r2"]]
-
-    temporal_variant_long = temporal_variant_long[["Model", "Graph variant", "test_r2"]]
-    temporal_compare_long = pd.concat([temporal_variant_long, rgcn_long], ignore_index=True)
-    model_order = [
-        "Ridge temporal baseline",
-        "RF local",
-        "GCN without treatment/project features",
-        "GCN with EXPERIMENT_SECTION features",
-        "Best relation-aware graph model (R-GCN)",
-    ]
-    graph_order = [GRAPH_VARIANTS[key] for key in GRAPH_VARIANTS]
-    temporal_compare_long["Model"] = pd.Categorical(
-        temporal_compare_long["Model"], categories=model_order, ordered=True
-    )
-    temporal_compare_long["Graph variant"] = pd.Categorical(
-        temporal_compare_long["Graph variant"], categories=graph_order, ordered=True
-    )
-    fig_temp_variants = px.bar(
-        temporal_compare_long.sort_values(["Model", "Graph variant"]),
-        x="Model",
-        y="test_r2",
-        color="Graph variant",
-        barmode="group",
-        title="Temporal R² by model and graph variant",
-        labels={"test_r2": "Test R²"},
-    )
-    st.plotly_chart(fig_temp_variants, width="stretch")
-    st.caption(
-        "This grouped view is the easiest way to compare three graph variants side by side. "
-        "Each model gets three bars: Spatial only, Spatial + Route, and Full refined. "
-        "Ridge and RF do not perform graph message passing, so their scores vary only slightly across graph variants. "
-        "The vanilla GCN per-variant rows come from `graph_variant_model_comparison.csv`, while the relation-aware rows come from `part1_rgcn_temporal.csv`."
-    )
-
-    if temporal_feature_audit_summary:
-        metric_card_row(
-            [
-                ("Retained temporal features", str(temporal_feature_audit_summary.get("retained_features", "n/a")), "Features kept after checking missingness, variance, and explicit exclusions."),
-                ("Dropped temporal features", str(temporal_feature_audit_summary.get("dropped_features", "n/a")), "Features removed before training."),
-                ("Dropped for missingness", str(temporal_feature_audit_summary.get("dropped_due_to_missingness", "n/a")), "Too few training transitions had usable values."),
-                ("Dropped explicitly", str(temporal_feature_audit_summary.get("dropped_explicitly", "n/a")), "Features excluded on modelling grounds rather than because of missingness."),
-            ]
+    if not cracking_benchmark.empty:
+        benchmark_plot = px.bar(
+            cracking_benchmark,
+            x="Model",
+            y="Test R²",
+            color="Target",
+            barmode="group",
+            title="Cracking prediction benchmark across the main model families",
         )
-    if not temporal_feature_audit.empty:
-        st.markdown("#### Which temporal features were actually kept?")
-        audit_view = temporal_feature_audit.copy()
-        audit_view["Retained"] = audit_view["retained"].map({1: "Yes", 0: "No"})
-        audit_view["Train non-missing share"] = audit_view["train_non_missing_share"].map(lambda v: f"{100.0 * float(v):.1f}%")
+        st.plotly_chart(benchmark_plot, width="stretch")
         st.dataframe(
-            audit_view[["feature_name", "feature_family", "Retained", "Train non-missing share", "decision_reason"]],
+            cracking_benchmark.sort_values(["Target", "Test R²"], ascending=[True, False]),
             use_container_width=True,
             hide_index=True,
         )
 
+    st.info(
+        """
+**What this benchmark says**
+
+- On **HPMS16**, the best overall score is the **stacked ensemble**.
+- On **HPMS16**, the **refined R-GCN** is now almost at the same level as the ensemble.
+- On **MEPDG**, the best score is the **refined R-GCN**, not the ensemble.
+
+So the clean presentation story is:
+- **HPMS16** = benchmark between model families
+- **MEPDG** = best specialist graph result
+"""
+    )
+
+    st.markdown("### 2. Does the graph itself help?")
     rgcn_view = part1_rgcn.copy()
     rgcn_view["Graph variant"] = rgcn_view["graph_variant"].map(GRAPH_VARIANTS)
-    rgcn_view["Relations used"] = rgcn_view["relations"]
     fig_rgcn = px.bar(
         rgcn_view,
         x="Graph variant",
         y="test_r2",
-        color="Relations used",
-        title="Does a relation-aware graph model help?",
+        text="test_r2",
+        title="Baseline R-GCN improves as the graph becomes richer",
         labels={"test_r2": "Test R²"},
     )
+    fig_rgcn.update_traces(texttemplate="%{text:.3f}", textposition="outside")
     st.plotly_chart(fig_rgcn, width="stretch")
 
-    st.info(
-        """
-**How to interpret the temporal results**
-
-- **RF local** wins in absolute R² because cracking is still dominated by local pavement and climate conditions.
-- The key graph result is **not** “GCN beats RF”.
-- The key graph result is that adding **EXPERIMENT_SECTION** treatment/project features to the GCN produces a large improvement over the same GCN without that relational context.
-- The **R-GCN** results then show that treating spatial, corridor, and same-class links differently can help further.
-- The attempted **GCN+LSTM** extension adds a 3-year sequence encoder on top of the graph snapshots. In this project it underperformed, so it should be described as an explored extension rather than a core result.
-"""
-    )
-
-    if focus_node:
-        st.markdown("#### Concrete example: what does the temporal model see?")
-        st.markdown(
-            f"""
-For a section like **{focus_node}**, the temporal model builds one training example per year.
-
-At year **t**, it sees:
-- the section's current cracking,
-- its yearly traffic and climate context,
-- a few static geometry variables,
-- and, in the treatment-aware version, whether this section or its neighbours recently had overlay, patching, crack sealing, or other treatment events.
-
-It then predicts **cracking at t+1** and compares that prediction with the **real cracking value recorded in the next observed year** for the same section.
-"""
+    if materials_weight_sweep_hpms16.get("results"):
+        hpms_sweep_df = pd.DataFrame(materials_weight_sweep_hpms16["results"]).copy()
+        hpms_sweep_df["Config"] = hpms_sweep_df["label"]
+        fig_hpms_sweep = px.bar(
+            hpms_sweep_df,
+            x="Config",
+            y="r2_test",
+            title="HPMS16: reweighting the refined graph changes performance substantially",
+            labels={"r2_test": "Test R²"},
         )
-
-    st.markdown("### 3. OOD temporal robustness")
-    ood_temporal_long = part1_ood_temporal.melt(
-        id_vars=["graph_variant", "test_transitions"],
-        value_vars=["rf_test_r2", "ridge_test_r2", "gcn_test_r2", "rgcn_test_r2"],
-        var_name="model",
-        value_name="test_r2",
-    )
-    ood_temporal_long["Graph variant"] = ood_temporal_long["graph_variant"].map(GRAPH_VARIANTS)
-    ood_temporal_long["Model"] = ood_temporal_long["model"].replace(
-        {
-            "rf_test_r2": "RF local",
-            "ridge_test_r2": "Ridge baseline",
-            "gcn_test_r2": "GCN",
-            "rgcn_test_r2": "R-GCN",
-        }
-    )
-    fig_ood_temp = px.bar(
-        ood_temporal_long,
-        x="Graph variant",
-        y="test_r2",
-        color="Model",
-        barmode="group",
-        title="Temporal robustness on held-out states",
-        labels={"test_r2": "Test R² on unseen states"},
-    )
-    st.plotly_chart(fig_ood_temp, width="stretch")
-    st.warning(
-        "Temporal OOD performance is weak for every model. This means the temporal task is sensitive to geography and should be described as promising within the observed data regime rather than fully general across unseen states."
-    )
-
-    st.markdown("### 4. Static disruption models")
-    static_rows = graph_variant_comparison[graph_variant_comparison["model_family"] == "static"].copy()
-    static_rows["Graph variant"] = static_rows["graph_variant"].map(GRAPH_VARIANTS)
-    static_rows["Target"] = static_rows["target"].map(lambda x: FRIENDLY_TARGETS.get(x, x))
-
-    if not static_target_defs.empty:
-        st.markdown(
-            """
-The static models do **not** predict observed traffic counts. They predict **synthetic disruption proxies** computed after removing a set of closed sections from the graph.
-
-Those proxies answer slightly different questions, so it is worth defining them explicitly before reading the R² scores.
-"""
-        )
-        proxy_table = static_target_defs.rename(
-            columns={
-                "target_variable": "Proxy",
-                "plain_english": "What it means in plain English",
-                "formula": "Formula",
-                "higher_means": "If this goes up...",
-                "depends_most_on": "Mostly driven by",
-            }
-        )[
-            [
-                "Proxy",
-                "What it means in plain English",
-                "Formula",
-                "If this goes up...",
-                "Mostly driven by",
-            ]
-        ]
-        st.dataframe(proxy_table, use_container_width=True, hide_index=True)
-        st.info(
-            """
-**How to read the four static proxies**
-
-- **`delta_vht_proxy`**: extra weighted travel-hours after closures. Bigger means users are effectively paying a larger travel-time penalty.
-- **`connectivity_loss_pct`**: loss of cohesion in the largest connected part of the graph. Bigger means the network breaks into more fragments.
-- **`disconnected_od_pct`**: weighted share of origin-destination pairs that become unreachable. Bigger means more trips become impossible.
-- **`disruption_score`**: composite disruption proxy. It starts from the travel penalty and inflates it when fragmentation and disconnection are also high.
-"""
-        )
-    if not static_target_worked_example.empty:
-        with st.expander("Show one worked example of a synthetic outage scenario"):
-            st.dataframe(
-                static_target_worked_example.head(20),
-                use_container_width=True,
-                hide_index=True,
-            )
-            st.caption(
-                "The first row summarises one closure scenario. The following rows list the most affected weighted OD pairs used to build the synthetic disruption targets."
-            )
-
-    static_bar = px.bar(
-        static_rows,
-        x="Graph variant",
-        y=["gcn_test_r2", "ridge_test_r2"],
-        facet_col="Target",
-        barmode="group",
-        title="Static disruption surrogates: graph model versus simple baseline",
-        labels={"value": "Test R²", "variable": "Model"},
-    )
-    static_bar.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
-    st.plotly_chart(static_bar, width="stretch")
-    st.info(
-        """
-**How to read the static models**
-
-These are not direct traffic observations. They are **surrogate models** trained to predict synthetic disruption targets for hypothetical outage scenarios.
-
-Here the important comparison is: with the same outage input, does a graph-aware model explain disruption better than a simpler non-graph baseline? The answer is often yes, but the best graph variant depends on the target.
-"""
-    )
-
-    ood_static_long = part1_ood_static.melt(
-        id_vars=["graph_variant", "test_scenarios"],
-        value_vars=[
-            "delta_vht_proxy_mlp_test_r2",
-            "connectivity_loss_pct_mlp_test_r2",
-            "disconnected_od_pct_mlp_test_r2",
-            "disruption_score_mlp_test_r2",
-        ],
-        var_name="target_model",
-        value_name="test_r2",
-    )
-    ood_static_long["Graph variant"] = ood_static_long["graph_variant"].map(GRAPH_VARIANTS)
-    ood_static_long["Target"] = ood_static_long["target_model"].str.replace("_mlp_test_r2", "", regex=False).map(lambda x: FRIENDLY_TARGETS.get(x, x))
-    fig_static_ood = px.bar(
-        ood_static_long,
-        x="Graph variant",
-        y="test_r2",
-        color="Target",
-        barmode="group",
-        title="Static robustness on held-out states",
-        labels={"test_r2": "Test R² on unseen states"},
-    )
-    st.plotly_chart(fig_static_ood, width="stretch")
-
-    st.markdown("### 5. Independent descriptive evidence")
-    group_view = event_by_group.copy()
-    group_view["Treatment group"] = group_view["broad_treatment_group"].map(lambda x: TREATMENT_LABELS.get(x, x))
-    chart_df = group_view[["Treatment group", "pre_cracking_3yr_median", "post_cracking_3yr_median", "treated_minus_neighbour_cracking_change_median"]].copy()
-    chart_long = chart_df.melt(id_vars="Treatment group", var_name="Metric", value_name="Value")
-    chart_long["Metric"] = chart_long["Metric"].replace(
-        {
-            "pre_cracking_3yr_median": "Pre-event cracking",
-            "post_cracking_3yr_median": "Post-event cracking",
-            "treated_minus_neighbour_cracking_change_median": "Treated minus neighbour change",
-        }
-    )
-    fig_event = px.bar(chart_long, x="Treatment group", y="Value", color="Metric", barmode="group", title="Event-study summary by treatment group")
-    st.plotly_chart(fig_event, width="stretch")
-    st.caption("This event-study is descriptive rather than causal. Its role is to provide a second, non-GNN view of how treatment categories and neighbouring sections behave before and after recorded interventions.")
+        st.plotly_chart(fig_hpms_sweep, width="stretch")
 
     st.success(
-        """
-**What the full evidence now says**
+        f"""
+**What the graph evidence supports**
 
-- The graph is useful for representing **interdependencies**, especially for static outage/disruption reasoning.
-- **RF local** remains the best pure asset-level predictor of next-year cracking.
-- **Graph models become useful when the question is relational**: neighbour treatment history and edge type start to matter.
-- **EXPERIMENT_SECTION** is the meaningful treatment-history source; the app should not frame the older project-history comparison as the main story.
-- **OOD tests** show that full transfer to unseen states is still difficult, which is an honest and important limitation.
-- **OSM checks** support most local edges and show that long same-route links should be interpreted as corridor membership rather than local neighbour effects.
+- Baseline R-GCN rises from **{safe_float(rgcn_view.loc[rgcn_view['graph_variant'].eq('spatial'), 'test_r2'].iloc[0]):.3f}** on `spatial`
+  to **{safe_float(rgcn_view.loc[rgcn_view['graph_variant'].eq('full_refined'), 'test_r2'].iloc[0]):.3f}** on `full_refined`.
+- On **HPMS16**, refinement pushes the graph result to **{hpms_best:.3f}**.
+- On **MEPDG**, the best refined graph reaches **{mepdg_best:.3f}**.
+
+So the useful conclusion is not “any graph works”. It is that the **refined graph family** is the one that matters.
+"""
+    )
+
+    st.markdown("### 3. Robustness on unseen states")
+    ood_rows = []
+    if part1_ood_ensemble_summary:
+        ood_rows.extend(
+            [
+                {"Model": "RF local", "Mean OOD R²": safe_float(part1_ood_ensemble_summary.get("rf_r2", {}).get("mean"))},
+                {"Model": "R-GCN", "Mean OOD R²": safe_float(part1_ood_ensemble_summary.get("rgcn_r2", {}).get("mean"))},
+                {"Model": "Ensemble", "Mean OOD R²": safe_float(part1_ood_ensemble_summary.get("ensemble_r2", {}).get("mean"))},
+            ]
+        )
+    ood_df = pd.DataFrame(ood_rows)
+    if not ood_df.empty:
+        fig_ood = px.bar(
+            ood_df,
+            x="Model",
+            y="Mean OOD R²",
+            title="Held-out-state robustness remains the weak point",
+            labels={"Mean OOD R²": "Mean R² on held-out states"},
+        )
+        st.plotly_chart(fig_ood, width="stretch")
+        st.dataframe(ood_df, use_container_width=True, hide_index=True)
+
+    st.warning(
+        """
+The current graph story is strongest **in-domain**.
+
+- The ensemble does **not** solve geographic transfer.
+- The R-GCN is currently **weaker than RF** on the latest 5-state held-out subset.
+- So the honest claim is improved cracking prediction **within the observed data regime**, not full inter-state generalisation.
+"""
+    )
+
+    st.markdown("### 4. Final takeaways")
+    st.info(
+        """
+**Supported by the current evidence**
+
+- Graph-aware models can improve cracking prediction when the graph is **well refined**.
+- The **full refined** graph is a better basis than the simpler graph variants.
+- The strongest graph results are now the **refined R-GCN** results on **HPMS16** and **MEPDG**.
+
+**Not supported by the current evidence**
+
+- That graph models always beat tabular baselines.
+- That the graph alone is the best HPMS16 headline model.
+- That the current graph solves **OOD geographic transfer**.
 """
     )
 
@@ -2016,6 +1868,8 @@ if advanced_mode and len(tabs) > 3:
             "graph_variant_model_comparison.csv",
             "treatment_feature_ablation.csv",
             "part1_rgcn_temporal.csv",
+            "distress_target_profile.csv",
+            "distress_model_comparison.csv",
             "part1_ood_temporal.csv",
             "part1_ood_static.csv",
             "osm_topology_status_summary.csv",

@@ -1,0 +1,4 @@
+edge_type,meaning_in_my_graph,should_it_be_osm_routable,how_to_interpret_osm_failure
+spatial,Local geographic proximity between sections.,"Often yes, especially at short distance.",Straight-line proximity does not necessarily imply a practical drivable connection; the edge may cross barriers or depend on indirect roads.
+same_route,Local same-corridor relationship along the same route.,Usually yes.,More concerning than for spatial edges; inspect whether the pair is actually too far apart or whether the route label is over-broad.
+same_functional_class,"Same state, same functional class, and similar traffic/climate/pavement context.",Not necessarily.,Does not invalidate the edge; it means the edge is functioning as a similarity/interdependency link rather than a physical adjacency link.

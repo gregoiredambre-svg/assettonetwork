@@ -1,0 +1,105 @@
+[
+  {
+    "min_cluster_size": 1,
+    "n_nodes_kept": 2426,
+    "n_edges_kept": 17944,
+    "n_components": 204,
+    "r2_train": 0.40039203168313975,
+    "r2_val": 0.42835383790347803,
+    "r2_test": 0.3845386494595019,
+    "mae_test": 8.824034012328175,
+    "rmse_test": 12.094836443932506,
+    "smape_test": 139.2059040426143,
+    "n_test": 170,
+    "skipped": false,
+    "drop_info": {
+      "kept": 2426,
+      "dropped": 0,
+      "min_size": 1
+    }
+  },
+  {
+    "min_cluster_size": 5,
+    "n_nodes_kept": 2265,
+    "n_edges_kept": 17754,
+    "n_components": 111,
+    "r2_train": 0.42040708199376786,
+    "r2_val": 0.48394619318424204,
+    "r2_test": 0.16189435730058566,
+    "mae_test": 8.737865304385748,
+    "rmse_test": 11.85373399041378,
+    "smape_test": 144.89953274113944,
+    "n_test": 158,
+    "skipped": false,
+    "drop_info": {
+      "kept": 2265,
+      "dropped": 161,
+      "min_size": 5,
+      "edges_kept": 17754,
+      "edges_dropped": 190
+    }
+  },
+  {
+    "min_cluster_size": 10,
+    "n_nodes_kept": 2096,
+    "n_edges_kept": 16845,
+    "n_components": 85,
+    "r2_train": 0.4332804765533358,
+    "r2_val": 0.483762066355635,
+    "r2_test": 0.29327678798172385,
+    "mae_test": 8.871183243350707,
+    "rmse_test": 10.909961980493636,
+    "smape_test": 143.91096158098583,
+    "n_test": 138,
+    "skipped": false,
+    "drop_info": {
+      "kept": 2096,
+      "dropped": 330,
+      "min_size": 10,
+      "edges_kept": 16845,
+      "edges_dropped": 1099
+    }
+  },
+  {
+    "min_cluster_size": 20,
+    "n_nodes_kept": 1441,
+    "n_edges_kept": 11578,
+    "n_components": 37,
+    "r2_train": 0.48023134847735327,
+    "r2_val": 0.5615117913208747,
+    "r2_test": 0.27361552448683246,
+    "mae_test": 7.583341468240797,
+    "rmse_test": 10.150826867477228,
+    "smape_test": 145.75504716945474,
+    "n_test": 97,
+    "skipped": false,
+    "drop_info": {
+      "kept": 1441,
+      "dropped": 985,
+      "min_size": 20,
+      "edges_kept": 11578,
+      "edges_dropped": 6366
+    }
+  },
+  {
+    "min_cluster_size": 50,
+    "n_nodes_kept": 439,
+    "n_edges_kept": 3273,
+    "n_components": 5,
+    "r2_train": 0.4535315203307896,
+    "r2_val": 0.0633272101081358,
+    "r2_test": 0.022678022974933265,
+    "mae_test": 13.333431959152222,
+    "rmse_test": 16.782806033866855,
+    "smape_test": 98.97370171467821,
+    "n_test": 11,
+    "skipped": false,
+    "drop_info": {
+      "kept": 439,
+      "dropped": 1987,
+      "min_size": 50,
+      "edges_kept": 3273,
+      "edges_dropped": 14671
+    }
+  }
+]

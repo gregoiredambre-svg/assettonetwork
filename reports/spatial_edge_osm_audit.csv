@@ -1,0 +1,201 @@
+source,target,distance_km,distance_bin,bbox_diagonal_km,src_snap_m,dst_snap_m,same_osm_edge,path_exists,osm_path_km,detour_ratio,topology_status,route_change_count_ref,route_change_count_name,unique_ref_count,unique_name_count,dominant_ref,dominant_name,src_ref,dst_ref,src_name,dst_name,endpoint_ref_overlap,endpoint_name_overlap,path_step_count,audit_verdict
+39_0105,39_0207,0.0502137122513757,0-1 km,22.41092366990501,4.582929491287642,3.794341971276649,0.0,1,0.019218660449500623,0.3827372960057159,short_connected,0.0,0.0,0.0,0.0,,,us 23,us 23,,,1.0,0.0,1.0,strong_local_neighbour
+6_A422,6_A423,0.0503825859702861,0-1 km,23.29704381657274,1.4552111711513562,1.305076331095739,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,1.0,1.0,i 8,kumeyaay highway,i 8,i 8,kumeyaay highway,kumeyaay highway,1.0,1.0,0.0,very_strong_local_neighbour
+32_A410,32_A456,0.0586774660707891,0-1 km,22.33343248487896,7.691403010756172,0.8511586681740231,0.0,1,1.2071369408144328,20.57241086992629,long_connected,0.0,0.0,0.0,0.0,,,i 80,i 80,dwight d. eisenhower highway,dwight d. eisenhower highway,1.0,1.0,3.0,weak_local_neighbour
+6_B451,6_B452,0.058986595588533,0-1 km,22.737697366963612,0.16434380009783342,0.6322215584411568,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,1.0,1.0,i 5,westside freeway,i 5,i 5,westside freeway,westside freeway,1.0,1.0,0.0,very_strong_local_neighbour
+39_0106,39_0209,0.0676533758478862,0-1 km,22.42770578582897,1.9883390089648418,5.448172584340473,0.0,1,0.019140133505386712,0.28291468482551324,short_connected,0.0,0.0,0.0,1.0,,radnor road,us 23,us 23,,,1.0,0.0,1.0,strong_local_neighbour
+32_A430,32_A454,0.0836944920838265,0-1 km,22.359377429856178,4.0740031170120545,1.31700751464635,0.0,1,1.2071369408144328,14.42313479368979,long_connected,0.0,0.0,0.0,0.0,,,i 80,i 80,dwight d. eisenhower highway,dwight d. eisenhower highway,1.0,1.0,3.0,weak_local_neighbour
+6_0211,6_A805,0.1014287744104965,0-1 km,22.79238550437851,4.6241131285584975,3.261684051380855,0.0,1,2.0030087649028583,19.747934218315606,long_connected,0.0,1.0,0.0,2.0,,south avenue,ca 99,,golden state highway,sycamore street,0.0,0.0,4.0,weak_local_neighbour
+4_A451,4_A452,0.1179143717238737,0-1 km,23.253521378749948,6.689904237900981,6.467565077117954,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,1.0,1.0,us 60,superstition freeway,us 60,us 60,superstition freeway,superstition freeway,1.0,1.0,0.0,very_strong_local_neighbour
+49_C431,49_C452,0.1201128879182517,0-1 km,22.280691706782292,0.8751541887261121,1.2417931212745799,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,1.0,1.0,i 15,veterans memorial highway,i 15,i 15,veterans memorial highway,veterans memorial highway,1.0,1.0,0.0,very_strong_local_neighbour
+49_D459,49_D460,0.1213140450302873,0-1 km,22.424966496519026,7.839945997714166,0.886029899694872,0.0,1,0.1802456846934109,1.4857775507230901,short_connected,0.0,0.0,0.0,0.0,,,sr 154,,bangerter highway,,0.0,0.0,1.0,strong_local_neighbour
+49_D440,49_D452,0.1261720139579007,0-1 km,22.44185944993553,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+49_C450,49_C451,0.1391909713595441,0-1 km,22.29577475444293,0.8912121485256698,1.1261438608553487,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,1.0,1.0,i 15,veterans memorial highway,i 15,i 15,veterans memorial highway,veterans memorial highway,1.0,1.0,0.0,very_strong_local_neighbour
+49_D410,49_D455,0.1577135469948462,0-1 km,22.46640810596626,3.753886756003317,4.8473151075174625,0.0,1,1.124358807984267,7.129120036980775,long_connected,0.0,0.0,1.0,1.0,sr 154,bangerter highway,,sr 154,,bangerter highway,0.0,0.0,2.0,weak_local_neighbour
+32_3010,32_A460,0.1734018213849566,0-1 km,22.402576311198263,1.7351181317619115,1.0191149367360501,0.0,1,1.2071369408144328,6.96150092988099,long_connected,0.0,0.0,0.0,0.0,,,i 80,i 80,dwight d. eisenhower highway,dwight d. eisenhower highway,1.0,1.0,3.0,weak_local_neighbour
+30_0508,30_0509,0.1807471298961351,0-1 km,21.853892116767874,1.8725975759621918,1.6972737879097082,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,2.0,0.0,i 90,,i 90;us 191,i 90;us 191,,,1.0,0.0,0.0,very_strong_local_neighbour
+13_0506,13_0507,0.1891852837155526,0-1 km,23.28692366596402,9.633373831360837,8.381947868154873,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,1.0,0.0,i 75,,i 75,i 75,,,1.0,0.0,0.0,very_strong_local_neighbour
+4_0660,4_0663,0.2024547641344045,0-1 km,23.115431776387574,6.734125610894673,5.007750961851971,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,2.0,1.0,i 40,purple heart trail,i 40;us 180,i 40;us 180,purple heart trail,purple heart trail,1.0,1.0,0.0,very_strong_local_neighbour
+39_A411,39_A412,0.2122323125322094,0-1 km,22.63585421255408,0.1378459321248969,0.12744683831366813,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,1.0,0.0,i 675,,i 675,i 675,,,1.0,0.0,0.0,very_strong_local_neighbour
+53_A310,53_A350,0.2124579033919524,0-1 km,21.664345548854506,2.8288473148790354,2.157028737515907,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,1.0,0.0,us 195,,us 195,us 195,,,1.0,0.0,0.0,very_strong_local_neighbour
+53_C330,53_C350,0.2126244731420205,0-1 km,21.870894931949998,3.549549480664153,2.2112564894279774,0.0,1,1.1569638341517292,5.44134838786383,long_connected,0.0,0.0,1.0,1.0,wa 14,southeast lewis and clark highway,wa 14,wa 14,southeast lewis and clark highway,southeast lewis and clark highway,1.0,1.0,1.0,weak_local_neighbour
+56_B310,56_B320,0.2127465250959875,0-1 km,22.356623854980842,4.565061037483212,3.9735162378268365,0.0,1,6.243043727389443,29.344985656394112,long_connected,0.0,0.0,1.0,1.0,wy 28,wy 28,wy 28,wy 28,wy 28,wy 28,1.0,1.0,1.0,weak_local_neighbour
+32_0108,32_0109,0.2144170139569092,0-1 km,22.54069332867567,1.7696146381211137,2.738437126447785,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,1.0,1.0,i 80,dwight d. eisenhower highway,i 80,i 80,dwight d. eisenhower highway,dwight d. eisenhower highway,1.0,1.0,0.0,very_strong_local_neighbour
+29_1005,29_A310,0.2399995532994272,0-1 km,22.800362838945528,5.897020377291359,4.231490932244988,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,1.0,0.0,us 54,,us 54,us 54,,,1.0,0.0,0.0,very_strong_local_neighbour
+39_0109,39_0263,0.2465074283753659,0-1 km,22.56874701845714,0.02453235057582825,2.3485305507420207,0.0,1,1.1204963953815665,4.545487341969044,long_connected,0.0,0.0,1.0,0.0,us 23,,us 23,us 23,,,1.0,0.0,2.0,ambiguous_but_close
+51_1023,51_A340,0.2490302851769138,0-1 km,22.964618138620494,5.371777616142729,0.13492041848767614,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,1.0,0.0,i 95,,i 95,i 95,,,1.0,0.0,0.0,very_strong_local_neighbour
+47_1023,47_C330,0.2616265988987016,0-1 km,23.122575783854852,4.800298418409794,1.2071487934754457,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,1.0,0.0,i 75,,i 75,i 75,,,1.0,0.0,0.0,very_strong_local_neighbour
+5_0803,5_0810,0.2625501634153438,0-1 km,23.27568418503701,0.5270582752221509,2.835002315583523,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,0.0,1.0,,right frontage road,,,right frontage road,right frontage road,0.0,1.0,0.0,very_strong_local_neighbour
+26_0603,26_0604,0.2633884599625948,0-1 km,22.12676643616475,0.4580009492026945,0.050754175255858715,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,1.0,0.0,us 10,,us 10,us 10,,,1.0,0.0,0.0,very_strong_local_neighbour
+37_0211,37_0212,0.2816678020917973,0-1 km,23.182417866433184,1.9922456858667907,1.674621276963978,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,2.0,0.0,i 285,,i 285;us 52,i 285;us 52,,,1.0,0.0,0.0,very_strong_local_neighbour
+48_J310,48_J320,0.3026841515483308,0-1 km,23.9134642203242,2.5548011294683164,1.2936151690144773,0.0,1,0.03904866206273633,0.12900795057484624,short_connected,0.0,0.0,1.0,1.0,us 181,us highway 181 north,us 181,us 181,us highway 181 north,us highway 181 north,1.0,1.0,1.0,strong_local_neighbour
+49_E448,49_E456,0.3091319727399568,0-1 km,22.59409343133447,1.2777450453871197,5.319491979389299,0.0,1,1.5048466997204184,4.867974950576537,long_connected,0.0,0.0,1.0,1.0,sr 248,kearns boulevard,us 189;us 40,us 189;us 40,,,1.0,0.0,3.0,ambiguous_but_close
+6_0566,6_0567,0.3101810305883143,0-1 km,23.264511251914698,2.5732888283035713,3.2367908292165404,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,1.0,1.0,i 40,needles freeway,i 40,i 40,needles freeway,needles freeway,1.0,1.0,0.0,very_strong_local_neighbour
+24_1634,24_A310,0.3124329298383798,0-1 km,22.869839917682164,2.260479121763574,4.484551979526279,0.0,1,4.858017574994326,15.54899343519058,long_connected,0.0,0.0,1.0,1.0,md 90,ocean city expressway,md 90,md 90,ocean city expressway,ocean city expressway,1.0,1.0,1.0,weak_local_neighbour
+4_0218,4_0220,0.317596491511922,0-1 km,23.430279172483868,5.146062690848466,3.553194016680781,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,1.0,1.0,i 10,pearl harbor memorial highway,i 10,i 10,pearl harbor memorial highway,pearl harbor memorial highway,1.0,1.0,0.0,very_strong_local_neighbour
+32_A350,32_A351,0.3280003005827966,0-1 km,22.71655529312209,0.13907327454216137,0.7866755573140309,0.0,1,0.04478567955142442,0.1365415808212628,short_connected,0.0,0.0,1.0,1.0,nv 659,north mccarran boulevard,nv 659,nv 659,north mccarran boulevard,north mccarran boulevard,1.0,1.0,1.0,strong_local_neighbour
+48_0164,48_0167,0.3662604216879025,0-1 km,24.161765115928617,2.6571292131349815,5.026937271399842,0.0,1,1.916396289267273,5.2323324492327234,long_connected,0.0,0.0,1.0,0.0,us 281,,us 281,us 281,,,1.0,0.0,1.0,weak_local_neighbour
+49_C448,49_C451,0.3772696686443746,0-1 km,22.491850695873925,0.8606423948847213,1.1261438608553487,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,1.0,1.0,i 15,veterans memorial highway,i 15,i 15,veterans memorial highway,veterans memorial highway,1.0,1.0,0.0,very_strong_local_neighbour
+49_C440,49_C453,0.3780705369821802,0-1 km,22.49327336095894,1.3073590548546448,1.4978328156866056,0.0,1,1.5443987854264056,4.0849487975287495,long_connected,0.0,0.0,1.0,1.0,sr 13,20800 north,i 15,i 15,veterans memorial highway,veterans memorial highway,1.0,1.0,3.0,ambiguous_but_close
+34_0508,34_0509,0.3820565668274756,0-1 km,22.640274114238963,8.758272880955738,4.209036953766239,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,1.0,1.0,i 195,central jersey expressway,i 195,i 195,central jersey expressway,central jersey expressway,1.0,1.0,0.0,very_strong_local_neighbour
+17_0603,17_0662,0.3957699493017053,0-1 km,22.73555683413599,3.4299247929722094,3.786460935583384,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,1.0,0.0,i 57,,i 57,i 57,,,1.0,0.0,0.0,very_strong_local_neighbour
+37_A960,37_A961,0.4146166361310109,0-1 km,23.34946567298666,7.229308114304564,7.337331315919297,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,1.0,1.0,us 1,jefferson davis highway,us 1,us 1,jefferson davis highway,jefferson davis highway,1.0,1.0,0.0,very_strong_local_neighbour
+53_1801,53_C350,0.4179700802969421,0-1 km,22.019963550777195,0.7210249542563204,2.2112564894279774,0.0,1,1.672463489894125,4.001395240314671,long_connected,0.0,0.0,1.0,1.0,wa 14,southeast lewis and clark highway,wa 14,wa 14,southeast lewis and clark highway,southeast lewis and clark highway,1.0,1.0,1.0,ambiguous_but_close
+46_0660,46_0662,0.421176846802853,0-1 km,21.97612057974088,6.506696145561267,4.093486149656581,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,1.0,1.0,us 12,west highway 12,us 12,us 12,west highway 12,west highway 12,1.0,1.0,0.0,very_strong_local_neighbour
+48_C410,48_C430,0.424364171384041,0-1 km,23.444424623252566,2.381184514294157,0.8099336780203389,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,3.0,1.0,us 183,us highway 287 east,us 183;us 287;us 70,us 183;us 287;us 70,us highway 287 east,us highway 287 east,1.0,1.0,0.0,very_strong_local_neighbour
+8_0214,8_0216,0.4250327008949678,0-1 km,22.84349380062939,0.3438369908822799,0.1672452120735088,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,1.0,1.0,i 76,heartland expressway,i 76,i 76,heartland expressway,heartland expressway,1.0,1.0,0.0,very_strong_local_neighbour
+20_4054,20_A430,0.4262090354727523,0-1 km,22.92168882684675,7.594193735780671,5.441704282636286,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,2.0,2.0,i 70,eisenhower presidential highway,i 70;us 40,i 70;us 40,eisenhower presidential highway;truman,eisenhower presidential highway;truman,1.0,1.0,0.0,very_strong_local_neighbour
+37_A964,37_A965,0.4306582000872305,0-1 km,23.36752490381784,7.375358351494876,4.775520758437772,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,1.0,1.0,us 1,jefferson davis highway,us 1,us 1,jefferson davis highway,jefferson davis highway,1.0,1.0,0.0,very_strong_local_neighbour
+48_A502,48_B350,0.4616226954850816,0-1 km,23.615445197074013,5.741511927957731,6.352537837905391,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,1.0,0.0,us 175,,us 175,us 175,,,1.0,0.0,0.0,very_strong_local_neighbour
+20_0108,20_0110,0.4706821392643902,0-1 km,23.017380317197702,0.928017293188725,3.448367383454158,0.0,1,1.5832641005249688,3.3637649879797595,long_connected,0.0,0.0,1.0,1.0,us 54,cannonball stageline,us 400;us 54,us 400;us 54,cannonball stageline,cannonball stageline,1.0,1.0,1.0,ambiguous_but_close
+39_0160,39_0208,0.4785913740319572,0-1 km,22.756637479498313,4.081735228172235,2.480964950062001,0.0,1,0.019218660449500623,0.040156721354149036,short_connected,0.0,0.0,0.0,0.0,,,us 23,us 23,,,1.0,0.0,1.0,strong_local_neighbour
+49_D454,49_D459,0.4882254049984321,0-1 km,22.718789534607275,4.679426732329494,7.839945997714166,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,1.0,1.0,sr 154,bangerter highway,sr 154,sr 154,bangerter highway,bangerter highway,1.0,1.0,0.0,very_strong_local_neighbour
+37_0208,37_0211,0.4960695512668445,0-1 km,23.390421217779394,1.6723607648133938,1.9922456858667907,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,2.0,0.0,i 285,,i 285;us 52,i 285;us 52,,,1.0,0.0,0.0,very_strong_local_neighbour
+48_4142,48_E420,0.5149519549142276,0-1 km,23.824064811780246,5.340827687263097,3.429459899330663,0.0,1,0.7110720303010641,1.3808512105163346,short_connected,0.0,0.0,1.0,0.0,us 96,,us 96,us 96,,,1.0,0.0,1.0,strong_local_neighbour
+19_0102,19_0103,0.5209653863044803,0-1 km,22.815459595124167,26.6729758037862,6.32146820378032,0.0,1,0.16726905198566758,0.3210751738655944,short_connected,0.0,0.0,1.0,1.0,us 61 business,354th avenue,,us 61 business,,354th avenue,0.0,0.0,1.0,strong_local_neighbour
+12_B321,12_B360,0.5285614814343965,0-1 km,23.944859992357657,8.429984757358774,5.854900665743272,0.0,1,0.3820236570955666,0.7227610609438294,short_connected,2.0,1.0,2.0,2.0,us 17,artis road,us 17,us 17,,,1.0,0.0,4.0,strong_local_neighbour
+4_0605,4_0662,0.5671255202629188,0-1 km,23.436657592420715,1.3465189502916113,2.855038536367034,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,2.0,1.0,i 40,purple heart trail,i 40;us 180,i 40;us 180,purple heart trail,purple heart trail,1.0,1.0,0.0,very_strong_local_neighbour
+16_C320,16_C350,0.5774277604735789,0-1 km,22.510609468738508,2.47019850951591,1.8489952323179681,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,1.0,1.0,i 15,veterans memorial highway,i 15,i 15,veterans memorial highway,veterans memorial highway,1.0,1.0,0.0,very_strong_local_neighbour
+4_7613,4_A456,0.579659769582048,0-1 km,23.58119859090257,0.05603203450258966,6.1135519420148645,0.0,1,1.4537571362739954,2.5079489944975784,supported_connected,0.0,0.0,1.0,1.0,az 87,south country club drive,us 60,us 60,superstition freeway,superstition freeway,1.0,1.0,5.0,plausible_local_neighbour
+42_A310,42_A330,0.5896635666370442,0-1 km,22.839253467177738,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+37_0201,37_0259,0.6049953529296915,0-1 km,23.503479187602515,9.825543200945077,2.916205608853031,1.0,1,0.0,0.0,same_osm_edge,0.0,0.0,2.0,0.0,i 285,,i 285;us 52,i 285;us 52,,,1.0,0.0,0.0,very_strong_local_neighbour
+49_D454,49_D460,0.6095394500287195,0-1 km,22.81657732161656,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+17_0601,17_0603,0.6112385279717395,0-1 km,22.907392195895905,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+16_A310,16_A320,0.6117663550826423,0-1 km,22.640425956558445,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+36_B310,36_B330,0.6134975250861415,0-1 km,22.39899804551078,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+48_A502,48_A503,0.6205451376655898,0-1 km,23.727613970419224,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+4_0117,4_0123,0.6241591961715147,0-1 km,23.569783623113636,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+8_0215,8_0216,0.6344366832604554,0-1 km,23.051944545878097,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+24_0509,24_0559,0.6381982246331042,0-1 km,23.060393340901737,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+55_A908,55_B909,0.6583737655311304,0-1 km,22.60649368659403,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+22_0116,22_0124,0.6728243124781071,0-1 km,24.019371205345646,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+10_0207,10_0210,0.6859106240891425,0-1 km,23.09759972819038,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+39_0111,39_0902,0.7007391180313619,0-1 km,22.92551875665852,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+12_A320,12_A351,0.7055050863723695,0-1 km,24.07619805109771,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+51_0123,51_0159,0.7325768165503034,0-1 km,23.389829988806824,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+38_0213,38_0215,0.7478734944021151,0-1 km,22.00708706305716,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+48_F320,48_F350,0.7639328891037477,0-1 km,23.91129180986475,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+20_0206,20_0212,0.7794989677423563,0-1 km,23.120942773872542,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+26_0608,26_0659,0.7835471915387625,0-1 km,22.435387332045018,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+46_0601,46_0605,0.7878053767526592,0-1 km,22.200420181769292,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+19_0108,19_0109,0.7918946001769136,0-1 km,23.09921556559359,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+49_A332,49_A390,0.8388176555325199,0-1 km,23.392171227753796,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+35_0108,35_0111,0.8768193862971044,0-1 km,23.87794907843826,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+6_0509,6_0571,0.9046632261706684,0-1 km,23.73648714962686,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+23_0503,23_0507,0.9075613084080684,0-1 km,22.589440184511194,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+31_0113,31_0120,0.9607868810136796,0-1 km,23.18076847248275,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+48_0121,48_0162,0.9739763549487094,0-1 km,24.68502792993127,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+48_3559,48_I340,1.0303877188186792,1-5 km,24.289207115462286,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+13_0563,13_0564,1.050691171737993,1-5 km,24.003524301418004,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+29_A605,29_A606,1.051292671171456,1-5 km,23.546097818812978,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+30_0113,30_0114,1.0630960040239088,1-5 km,22.542740483728853,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+17_0604,17_0663,1.0897068638412557,1-5 km,23.292343867946354,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+27_0705,27_0709,1.0944639299349257,1-5 km,22.646389182088896,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+40_AA61,40_AA63,1.1549957343157926,1-5 km,23.689318277970234,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+24_0559,24_0561,1.1554923088598916,1-5 km,23.523752873730558,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+29_B340,29_B351,1.156456471338065,1-5 km,23.72102172644024,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+56_B310,56_B360,1.168427108018673,1-5 km,23.20173189352023,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+12_0504,12_0563,1.1944742368629977,1-5 km,24.945947430191474,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+4_0214,4_0216,1.1989760804081382,1-5 km,24.161288099805247,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+40_C310,40_C350,1.2287530204386314,1-5 km,23.599850975901543,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+6_0661,6_0662,1.231519035780292,1-5 km,23.477244689286454,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+18_A901,18_A959,1.2419567164854917,1-5 km,23.22679841045802,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+32_0101,32_0108,1.2850829626111593,1-5 km,23.603716215818377,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+24_0502,24_0508,1.288383954785772,1-5 km,23.775563357114503,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+48_3749,48_M350,1.288812819217657,1-5 km,25.028801039544607,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+55_0120,55_0806,1.30269604687862,1-5 km,22.98802745493037,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+48_D320,48_D350,1.3296798650095183,1-5 km,24.588728049957687,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+55_0113,55_0121,1.331238013200687,1-5 km,23.047984018840594,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+48_K310,48_K351,1.3614164850041528,1-5 km,24.816410434960012,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+46_0605,46_0662,1.3704126406616923,1-5 km,22.553450100846756,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+12_0503,12_0506,1.4401710569153374,1-5 km,25.147520591870315,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+39_0202,39_0259,1.6225862381866916,1-5 km,23.686370595228457,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+40_0601,40_0604,1.6767637063066858,1-5 km,24.132546198635055,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+30_0113,30_0119,1.6944895079670226,1-5 km,23.171344238591495,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+6_A320,6_A340,1.704192865804418,1-5 km,24.11918626136133,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+28_0501,28_0509,1.710174615869763,1-5 km,24.90596587254017,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+46_0601,46_0606,1.7253546811273297,1-5 km,22.780055175744,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+31_A340,31_A353,1.7339798123390695,1-5 km,23.54491808751248,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+42_0606,42_0662,1.744236756071604,1-5 km,23.775542973197545,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+24_0903,24_2805,1.7552084852827508,1-5 km,23.816584463968717,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+42_0601,42_0607,1.8004043315644755,1-5 km,23.912333904032504,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+27_0903,27_0910,1.826108540015498,1-5 km,23.649381077391798,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+32_0102,32_0110,1.859081312827385,1-5 km,24.17488168156673,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+6_0605,6_0659,1.9887195720636608,1-5 km,24.234337490327054,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+12_0564,12_0566,2.0093080318936427,1-5 km,25.712391055988284,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+55_0119,55_0805,2.0172917597710627,1-5 km,23.62478642798494,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+19_0105,19_0109,2.033024154085353,1-5 km,24.35050031604177,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+22_0113,22_0123,2.0450052147558115,1-5 km,25.09228421432595,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+24_0501,24_0562,2.103240785481611,1-5 km,24.386739879740205,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+26_0213,26_0215,2.159146971958864,1-5 km,23.99531245838361,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+31_A330,31_A353,2.192404434410566,1-5 km,23.86184370919609,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+12_0103,12_0110,2.2680020584737433,1-5 km,26.127967490074216,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+19_0110,19_0159,2.313154444817871,1-5 km,24.601045173043264,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+47_9025,47_A330,2.865070424827179,1-5 km,25.466815093495374,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+27_2023,27_3007,3.140965080494185,1-5 km,24.769466833541287,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+27_0501,27_0506,3.5761167247376835,1-5 km,24.214546167864107,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+29_AA61,29_AA65,3.908770716495378,1-5 km,26.3946138163249,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+29_AA03,29_AA65,4.505069693241839,1-5 km,26.920857941138074,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+48_0802,48_3835,5.251924538569319,5-10 km,28.7036786320447,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+29_A603,29_A605,5.459378467973668,5-10 km,27.872821310088998,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+19_0602,19_0604,5.759962828571529,5-10 km,27.04529620274815,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+29_A604,29_A607,5.933745414784956,5-10 km,28.262782740297933,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+29_0708,29_0759,6.420992637797568,5-10 km,28.042148086799877,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+55_3010,55_5040,9.508667356670584,5-10 km,30.873215723319113,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+37_1817,37_3807,10.757641211346035,10-25 km,33.61206594186403,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+23_3014,23_7023,11.892085560212651,10-25 km,33.535552823028006,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+4_0261,4_1003,11.9407508371835,10-25 km,33.656640828184514,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+4_0224,4_1003,13.134900603273568,10-25 km,34.75749490470617,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+55_6351,55_6352,13.342179465398091,10-25 km,32.99680679929993,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+48_5283,48_A420,15.184564907529284,10-25 km,35.80900137066971,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+32_B310,32_C350,19.249580949197505,10-25 km,41.21382611684772,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+27_4034,27_5076,21.0064981543717,10-25 km,39.647958913054126,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+34_1638,34_4042,21.10795992678901,10-25 km,43.47170516366913,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+53_A330,53_AA03,21.797311463927077,10-25 km,42.97796088010568,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+17_4082,17_A310,21.89177344998844,10-25 km,40.36566711899552,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+4_1022,4_1062,23.101671420845346,10-25 km,42.94744170767412,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+42_0660,42_1614,25.02725897344397,25-50 km,47.27100553069929,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+18_2009,18_A902,27.26301520758176,25-50 km,49.652158301440885,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+28_0903,28_3089,28.483981106720165,25-50 km,51.493293062496534,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+26_A350,26_B330,28.68358498620658,25-50 km,49.08348069987387,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+26_A321,26_B320,28.72630037040282,25-50 km,49.152688370133106,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+26_A330,26_B340,28.812072465515133,25-50 km,49.15280018164305,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+12_4138,12_C321,30.151234388863458,25-50 km,53.467948707206446,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+4_6054,4_C330,30.309356081355247,25-50 km,51.48247978260363,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+27_1004,27_4055,31.1781264677017,25-50 km,51.81730438708478,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+28_3085,28_3089,31.21385672647008,25-50 km,54.23735258232462,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+48_1069,48_5035,31.243910526702862,25-50 km,54.30149694784916,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+6_0664,6_2002,31.512825614759052,25-50 km,53.54329196538884,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+9_0960,9_4020,32.031020705133095,25-50 km,52.941592765467384,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+8_0259,8_9019,34.18570705106768,25-50 km,56.50370924662735,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+48_0801,48_1178,34.68722657247719,25-50 km,58.040869673755736,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+48_1168,48_3579,36.41648098626249,25-50 km,56.451697713791056,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+47_A310,47_B330,37.91677779090868,25-50 km,58.95334404155789,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+47_A350,47_B310,38.016817249119086,25-50 km,59.1495538803637,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+18_2009,18_3030,43.69416850752267,25-50 km,64.86422057250478,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+53_0801,53_A810,44.77879350102725,25-50 km,63.70805234401948,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+47_9024,47_B330,47.28339383365413,25-50 km,67.74213181984277,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+28_0508,28_1016,48.65223239517216,25-50 km,70.52422414825821,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+29_0961,29_5473,50.48873113060207,>50 km,69.40599802724788,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+17_0607,17_5849,51.17264681314936,>50 km,72.53360784595273,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+48_A505,48_F310,51.476512808610494,>50 km,69.02876447040327,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+26_0223,26_5363,52.072588071668456,>50 km,74.10689894846038,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+37_3816,37_A962,52.09017762435762,>50 km,74.88084475138632,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+20_0103,20_1009,53.928081104203414,>50 km,76.60101169205365,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+51_5009,51_A320,55.133701711123486,>50 km,76.2706303927046,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+51_1464,51_5008,58.067865012515455,>50 km,80.81849237807026,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+6_3042,6_B430,63.08418664524925,>50 km,83.39285370037646,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+32_AA02,6_9107,63.159080937332504,>50 km,80.1045131758565,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+13_4096,1_4155,64.21636849628614,>50 km,84.58890275354094,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+48_3835,48_H320,65.14117170615535,>50 km,88.43245380479195,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+51_1464,51_A321,69.37444352215856,>50 km,90.8490008739276,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+26_0903,26_A310,69.40752156279883,>50 km,90.91788057050233,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+32_7084,4_A350,69.49786040592139,>50 km,88.80069328864795,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+17_5453,17_A310,69.82919973441777,>50 km,91.23457755487878,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+12_3804,12_4137,73.44964151081494,>50 km,93.5413614737728,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+12_0959,12_3997,75.0929785430819,>50 km,95.46989166575806,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+47_3108,47_3110,76.21018036012543,>50 km,99.05552401170281,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+1_0604,1_5008,77.84380677736522,>50 km,100.89605763835999,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+48_3609,48_E330,78.17062160862825,>50 km,99.61645430587649,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+27_0508,27_4050,78.77087544503622,>50 km,96.37554869618894,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check
+37_3011,37_3044,79.95267890187145,>50 km,99.26053017361836,,,,0,,,fetch_or_match_failed,,,,,,,,,,,,,,needs_manual_map_check

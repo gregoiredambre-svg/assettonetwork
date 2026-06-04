@@ -18,6 +18,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+import joblib
 import numpy as np
 import pandas as pd
 import torch
@@ -27,8 +28,10 @@ from PIL import Image, ImageDraw
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import Ridge
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import StandardScaler
+
+from evaluation import compare_models, compute_metrics, dataframe_to_markdown, save_metrics_table
 
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "Research Data"
@@ -44,6 +47,13 @@ VAL_END = 2018
 TEST_START = 2019
 TEST_END = 2021
 TARGET_COL = "HPMS16_CRACKING_PERCENT_AC"
+MULTITASK_TARGET_COLS = [
+    "HPMS16_CRACKING_PERCENT_AC",
+    "MEPDG_CRACKING_PERCENT_AC",
+    "MEPDG_TRANS_CRACK_LENGTH_AC",
+    "PATCH_A",
+    "POTHOLES_A",
+]
 FEATURE_MIN_NON_MISSING_SHARE = 0.35
 FEATURE_STD_EPS = 1e-8
 TEMPORAL_EXCLUDED_FEATURES = {
@@ -74,11 +84,7 @@ def rmse(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 
 
 def metric_block(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
-    return {
-        "rmse": rmse(y_true, y_pred),
-        "mae": float(mean_absolute_error(y_true, y_pred)),
-        "r2": float(r2_score(y_true, y_pred)),
-    }
+    return compute_metrics(y_true, y_pred)
 
 
 def normalize_string_columns(df: pd.DataFrame, cols: list[str]) -> pd.DataFrame:
@@ -199,12 +205,15 @@ def load_graph_adjacency(node_ids: list[str], graph_variant: str) -> np.ndarray:
     return normalized.astype(np.float32)
 
 
-def load_distress_ac() -> pd.DataFrame:
+def load_distress_panel(target_cols: list[str] | None = None) -> pd.DataFrame:
+    """Load annualised AC distress observations for one or more target columns."""
+
+    targets = target_cols or [TARGET_COL]
     path = DATA_DIR / "Analysis Ready Distress.xlsx"
     df = pd.read_excel(
         path,
         sheet_name="ANALYSIS_DIS_AC",
-        usecols=["STATE_CODE", "SHRP_ID", "SURVEY_DATE", TARGET_COL],
+        usecols=["STATE_CODE", "SHRP_ID", "SURVEY_DATE", *targets],
     )
     df = df.rename(columns={"STATE_CODE": "state_code", "SHRP_ID": "shrp_id"})
     normalize_string_columns(df, ["state_code", "shrp_id"])
@@ -212,10 +221,17 @@ def load_distress_ac() -> pd.DataFrame:
     df = df.merge(load_node_lookup(), on="node_id_join", how="left")
     df["SURVEY_DATE"] = pd.to_datetime(df["SURVEY_DATE"], errors="coerce")
     df["YEAR"] = df["SURVEY_DATE"].dt.year.astype("Int64")
-    df[TARGET_COL] = pd.to_numeric(df[TARGET_COL], errors="coerce")
+    for col in targets:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
     df = df.dropna(subset=["node_id", "YEAR"]).copy()
-    agg = df.groupby(["node_id", "YEAR"], as_index=False)[TARGET_COL].mean()
+    agg = df.groupby(["node_id", "YEAR"], as_index=False)[targets].mean()
     return agg
+
+
+def load_distress_ac() -> pd.DataFrame:
+    """Load the single target used by the legacy temporal cracking pipeline."""
+
+    return load_distress_panel([TARGET_COL])
 
 
 def load_traffic_panel() -> pd.DataFrame:
@@ -742,6 +758,35 @@ class TemporalData:
     feature_audit: pd.DataFrame | None
 
 
+@dataclass
+class TabularBaselineBundle:
+    """Fitted tabular baselines plus preprocessing metadata."""
+
+    feature_cols: list[str]
+    imputer: SimpleImputer
+    scaler: StandardScaler
+    ridge_model: Ridge
+    rf_model: RandomForestRegressor
+    split_frames: dict[str, pd.DataFrame]
+
+
+@dataclass
+class MultiTaskTemporalData:
+    """Prepared temporal panel for joint multi-distress prediction."""
+
+    panel: pd.DataFrame
+    node_ids: list[str]
+    years: list[int]
+    local_feature_cols: list[str]
+    x_with_maint: np.ndarray
+    y: np.ndarray
+    y_mask: np.ndarray
+    split_masks: dict[str, np.ndarray]
+    target_cols: list[str]
+    target_means: dict[str, float]
+    target_stds: dict[str, float]
+
+
 def fit_imputer_scaler(train_2d: np.ndarray) -> tuple[SimpleImputer, StandardScaler]:
     imputer = SimpleImputer(strategy="median")
     scaler = StandardScaler()
@@ -825,6 +870,141 @@ def prepare_temporal_data(
         feature_audit=feature_audit,
     )
     return data, adjacency
+
+
+def prepare_multitask_data(
+    graph_variant: str = "full_refined",
+    treatment_mode: str = "experiment",
+    target_cols: list[str] | None = None,
+) -> tuple[MultiTaskTemporalData, dict[str, object]]:
+    """Prepare a multi-target temporal dataset for joint distress prediction.
+
+    The function reuses the same section-year panel logic as the single-target
+    pipeline, but materialises multiple next-year distress targets at once.
+    Train-only coverage checks are applied target by target; any target with
+    fewer than 50 observed training samples is dropped explicitly.
+    """
+
+    requested_targets = target_cols or MULTITASK_TARGET_COLS
+    panel, _, treatment_counts, treatment_semantics = build_temporal_panel(
+        use_monthly_climate_aggregates=False,
+        treatment_mode=treatment_mode,
+        graph_variant=graph_variant,
+    )
+
+    multitask_distress = load_distress_panel(requested_targets).rename(
+        columns={target: f"{target}_t" for target in requested_targets}
+    )
+    panel = panel.drop(columns=["cracking_t", "target_t1", "target_year"], errors="ignore")
+    panel = panel.merge(multitask_distress, on=["node_id", "YEAR"], how="left")
+    panel = panel.sort_values(["node_id", "YEAR"]).reset_index(drop=True)
+
+    for target in requested_targets:
+        current_col = f"{target}_t"
+        future_col = f"{target}_t1"
+        panel[future_col] = panel.groupby("node_id")[current_col].shift(-1)
+    if f"{TARGET_COL}_t" in panel.columns:
+        panel["cracking_t"] = panel[f"{TARGET_COL}_t"]
+    if f"{TARGET_COL}_t1" in panel.columns:
+        panel["target_t1"] = panel[f"{TARGET_COL}_t1"]
+    panel["target_year"] = panel["YEAR"] + 1
+
+    node_ids = sorted(panel["node_id"].unique().tolist())
+    years = sorted(panel["YEAR"].unique().tolist())
+    node_index = {node_id: idx for idx, node_id in enumerate(node_ids)}
+    year_index = {year: idx for idx, year in enumerate(years)}
+
+    local_cols, _, _, _ = build_feature_sets(panel, treatment_mode=treatment_mode)
+    x_with = np.full((len(years), len(node_ids), len(local_cols)), np.nan, dtype=np.float32)
+    y = np.full((len(years), len(node_ids), len(requested_targets)), np.nan, dtype=np.float32)
+    y_mask = np.zeros((len(years), len(node_ids), len(requested_targets)), dtype=bool)
+
+    split_masks = {
+        "train": np.zeros((len(years), len(node_ids)), dtype=bool),
+        "val": np.zeros((len(years), len(node_ids)), dtype=bool),
+        "test": np.zeros((len(years), len(node_ids)), dtype=bool),
+    }
+
+    panel = panel.copy()
+    for row in panel.itertuples(index=False):
+        yi = year_index[int(row.YEAR)]
+        ni = node_index[str(row.node_id)]
+        x_with[yi, ni, :] = np.asarray([getattr(row, col) for col in local_cols], dtype=np.float32)
+        if int(row.YEAR) <= TRAIN_END:
+            split_masks["train"][yi, ni] = True
+        elif VAL_START <= int(row.YEAR) <= VAL_END:
+            split_masks["val"][yi, ni] = True
+        elif TEST_START <= int(row.YEAR) <= TEST_END:
+            split_masks["test"][yi, ni] = True
+        for ti, target in enumerate(requested_targets):
+            future_col = f"{target}_t1"
+            value = getattr(row, future_col)
+            if not pd.isna(value):
+                y[yi, ni, ti] = float(value)
+                y_mask[yi, ni, ti] = True
+
+    train_idx = [year_index[year] for year in years if year <= TRAIN_END]
+    train_with = x_with[train_idx].reshape(-1, x_with.shape[-1])
+    imp_with, scl_with = fit_imputer_scaler(train_with)
+    x_with = transform_3d(x_with, imp_with, scl_with)
+
+    kept_targets: list[str] = []
+    target_means: dict[str, float] = {}
+    target_stds: dict[str, float] = {}
+    coverage_summary: dict[str, dict[str, int]] = {}
+    dropped_targets: list[str] = []
+    kept_target_indices: list[int] = []
+    for ti, target in enumerate(requested_targets):
+        target_counts = {
+            split_name: int((split_masks[split_name] & y_mask[:, :, ti]).sum())
+            for split_name in ["train", "val", "test"]
+        }
+        coverage_summary[target] = target_counts
+        if target_counts["train"] < 50:
+            print(f"[gcn_temporal] WARNING: dropping multi-task target {target} (<50 train samples).")
+            dropped_targets.append(target)
+            continue
+        train_values = y[:, :, ti][split_masks["train"] & y_mask[:, :, ti]]
+        train_mean = float(np.mean(train_values))
+        train_std = float(np.std(train_values, ddof=0))
+        if not np.isfinite(train_std) or train_std <= FEATURE_STD_EPS:
+            print(f"[gcn_temporal] WARNING: dropping multi-task target {target} (near-zero train std).")
+            dropped_targets.append(target)
+            continue
+        kept_targets.append(target)
+        kept_target_indices.append(ti)
+        target_means[target] = train_mean
+        target_stds[target] = train_std
+
+    if not kept_targets:
+        raise ValueError("No multitask targets passed the minimum training coverage check.")
+
+    y = y[:, :, kept_target_indices]
+    y_mask = y_mask[:, :, kept_target_indices]
+    multitask_data = MultiTaskTemporalData(
+        panel=panel,
+        node_ids=node_ids,
+        years=years,
+        local_feature_cols=local_cols,
+        x_with_maint=x_with,
+        y=y,
+        y_mask=y_mask,
+        split_masks=split_masks,
+        target_cols=kept_targets,
+        target_means=target_means,
+        target_stds=target_stds,
+    )
+    prep_info = {
+        "graph_variant": graph_variant,
+        "treatment_mode": treatment_mode,
+        "requested_target_cols": requested_targets,
+        "kept_target_cols": kept_targets,
+        "dropped_target_cols": dropped_targets,
+        "coverage_summary": coverage_summary,
+        "treatment_category_counts": treatment_counts.to_dict(orient="records") if treatment_counts is not None else None,
+        "treatment_semantics_rows": int(len(treatment_semantics)) if treatment_semantics is not None else 0,
+    }
+    return multitask_data, prep_info
 
 
 class SnapshotGCN(nn.Module):
@@ -1064,7 +1244,7 @@ def build_tabular_rows(data: TemporalData) -> tuple[pd.DataFrame, pd.DataFrame, 
     return train, val, test
 
 
-def train_tabular_baselines(data: TemporalData) -> dict[str, dict[str, float]]:
+def train_tabular_baselines(data: TemporalData) -> tuple[dict[str, dict[str, float]], TabularBaselineBundle]:
     train, val, test = build_tabular_rows(data)
     feature_cols = data.local_feature_cols
     x_train = train[feature_cols].to_numpy()
@@ -1101,7 +1281,15 @@ def train_tabular_baselines(data: TemporalData) -> dict[str, dict[str, float]]:
             "val": metric_block(y_val, pred_val),
             "test": metric_block(y_test, pred_test),
         }
-    return out
+    bundle = TabularBaselineBundle(
+        feature_cols=feature_cols,
+        imputer=imputer,
+        scaler=scaler,
+        ridge_model=ridge,
+        rf_model=rf,
+        split_frames={"train": train, "val": val, "test": test},
+    )
+    return out, bundle
 
 
 def plot_predictions(y_true: np.ndarray, y_pred: np.ndarray, path: Path) -> None:
@@ -1162,6 +1350,34 @@ def tag_path(base_dir: Path, stem: str, output_tag: str, suffix: str) -> Path:
     return base_dir / f"{name}{suffix}"
 
 
+def save_model_metrics_v2(stem: str, output_tag: str, payload: dict[str, object], comparison: pd.DataFrame | None = None) -> None:
+    """Save `_v2` metrics payloads without touching legacy files."""
+
+    json_path = tag_path(REPORT_DIR, stem, output_tag, ".json")
+    with open(json_path, "w", encoding="utf-8") as fh:
+        json.dump(payload, fh, indent=2)
+    if comparison is not None:
+        md_path = tag_path(REPORT_DIR, stem, output_tag, ".md")
+        save_metrics_table(comparison, json_path.with_name(json_path.stem + "_table.json"), md_path)
+
+
+def save_tabular_artifacts(bundle: TabularBaselineBundle, graph_variant: str, treatment_mode: str) -> None:
+    """Persist fitted RF/Ridge artifacts for downstream ensemble experiments."""
+
+    GRAPH_DIR.mkdir(exist_ok=True)
+    for model_name, model in [("rf_local", bundle.rf_model), ("ridge_local", bundle.ridge_model)]:
+        artifact = {
+            "model": model,
+            "imputer": bundle.imputer,
+            "scaler": bundle.scaler,
+            "feature_cols": bundle.feature_cols,
+            "graph_variant": graph_variant,
+            "treatment_mode": treatment_mode,
+            "target_col": TARGET_COL,
+        }
+        joblib.dump(artifact, GRAPH_DIR / f"temporal_{model_name}_{graph_variant}_{treatment_mode}.joblib")
+
+
 def main() -> None:
     args = parse_args()
     set_seed()
@@ -1192,7 +1408,7 @@ def main() -> None:
             use_monthly_climate_aggregates=args.use_monthly_climate_aggregates,
             treatment_mode=treatment_mode,
         )
-        baseline_metrics = train_tabular_baselines(data)
+        baseline_metrics, baseline_bundle = train_tabular_baselines(data)
         gcn_with_project, gcn_with_metrics, y_test_with, pred_test_with = train_snapshot_gcn(
             data.x_with_maint, data.y, data.mask, data.years, adjacency
         )
@@ -1237,6 +1453,33 @@ def main() -> None:
         with open(metrics_path, "w", encoding="utf-8") as fh:
             json.dump(summary, fh, indent=2)
 
+        model_results = {
+            "RF local": baseline_metrics["rf_local"],
+            "Ridge local": baseline_metrics["ridge_local"],
+            "GCN without project/treatment features": gcn_without_metrics,
+            "GCN with project/treatment features": gcn_with_metrics,
+            "GCN+LSTM with project/treatment features": gcn_lstm_metrics,
+        }
+        comparison_df = compare_models(model_results)
+        print(f"\n### Temporal comparison ({treatment_mode})")
+        print(dataframe_to_markdown(comparison_df))
+
+        stem_tag = output_tag if not args.output_tag else f"{output_tag}_{args.output_tag}"
+        save_metrics_table(
+            comparison_df,
+            tag_path(REPORT_DIR, "temporal_model_comparison_metrics_v2", stem_tag, ".json"),
+            tag_path(REPORT_DIR, "temporal_model_comparison_metrics_v2", stem_tag, ".md"),
+        )
+        per_model_payloads = {
+            "rf_local_metrics_v2": {"model": "RF local", "metrics": baseline_metrics["rf_local"], "graph_variant": args.graph_variant, "treatment_mode": treatment_mode},
+            "ridge_local_metrics_v2": {"model": "Ridge local", "metrics": baseline_metrics["ridge_local"], "graph_variant": args.graph_variant, "treatment_mode": treatment_mode},
+            "gcn_without_project_treatment_metrics_v2": {"model": "GCN without project/treatment features", "metrics": gcn_without_metrics, "graph_variant": args.graph_variant, "treatment_mode": treatment_mode},
+            "gcn_with_project_treatment_metrics_v2": {"model": "GCN with project/treatment features", "metrics": gcn_with_metrics, "graph_variant": args.graph_variant, "treatment_mode": treatment_mode},
+            "gcn_lstm_with_project_treatment_metrics_v2": {"model": "GCN+LSTM with project/treatment features", "metrics": gcn_lstm_metrics, "graph_variant": args.graph_variant, "treatment_mode": treatment_mode},
+        }
+        for stem, payload in per_model_payloads.items():
+            save_model_metrics_v2(stem, stem_tag, payload)
+
         if treatment_mode == args.treatment_mode:
             figure_path = tag_path(FIGURE_DIR, "temporal_predictions", args.output_tag, ".png")
             plot_predictions(y_test_with, pred_test_with, figure_path)
@@ -1250,9 +1493,24 @@ def main() -> None:
                     "node_ids": data.node_ids,
                     "years": data.years,
                     "treatment_mode": treatment_mode,
+                    "graph_variant": args.graph_variant,
                 },
                 tag_path(MODEL_DIR, "gcn_temporal", args.output_tag, ".pt"),
             )
+            torch.save(
+                {
+                    "model_type": "snapshot_gcn",
+                    "graph_variant": args.graph_variant,
+                    "treatment_mode": treatment_mode,
+                    "state_dict": gcn_with_project.state_dict(),
+                    "feature_cols": data.local_feature_cols,
+                    "node_ids": data.node_ids,
+                    "years": data.years,
+                    "hidden_dim": 64,
+                },
+                GRAPH_DIR / f"temporal_gcn_with_project_treatment_{args.graph_variant}_{treatment_mode}.pt",
+            )
+            save_tabular_artifacts(baseline_bundle, args.graph_variant, treatment_mode)
             selected_summary = summary
             selected_bundle = (baseline_metrics, gcn_without_metrics, gcn_with_metrics)
 

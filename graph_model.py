@@ -25,9 +25,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from sklearn.linear_model import Ridge
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+
+from evaluation import compare_models, compute_metrics, dataframe_to_markdown, save_metrics_table
 
 ROOT = Path(__file__).resolve().parent
 GRAPH_DIR = ROOT / "graph_data"
@@ -669,11 +671,7 @@ def train_scenario_model(
 
 
 def metric_block(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
-    return {
-        "rmse": rmse(y_true, y_pred),
-        "mae": float(mean_absolute_error(y_true, y_pred)),
-        "r2": float(r2_score(y_true, y_pred)),
-    }
+    return compute_metrics(y_true, y_pred)
 
 
 def build_metrics(target_names: list[str], targets: np.ndarray, artifacts: FitArtifacts) -> dict[str, object]:
@@ -823,6 +821,40 @@ def main() -> None:
     metrics_path = tagged_name("network_model_metrics", args.output_tag, ".json")
     with open(metrics_path, "w", encoding="utf-8") as fh:
         json.dump(summary, fh, indent=2)
+
+    comparison_tables: dict[str, object] = {}
+    for target_name in target_names:
+        target_results = {
+            "GCN": metrics["targets"][target_name]["gcn"],
+            "Ridge": metrics["targets"][target_name]["ridge"],
+        }
+        comparison_df = compare_models(target_results)
+        comparison_tables[target_name] = comparison_df.to_dict(orient="records")
+        base_name = f"{target_name}_{args.output_tag}" if args.output_tag else target_name
+        save_metrics_table(
+            comparison_df,
+            tagged_name(f"{base_name}_static_model_metrics_v2", "", ".json"),
+            tagged_name(f"{base_name}_static_model_metrics_v2", "", ".md"),
+        )
+        print(f"\n### Static comparison for {target_name}")
+        print(dataframe_to_markdown(comparison_df))
+
+    gcn_metrics_v2 = {
+        "graph_variant": args.graph_variant,
+        "model": "GCN",
+        "targets": {target_name: metrics["targets"][target_name]["gcn"] for target_name in target_names},
+    }
+    ridge_metrics_v2 = {
+        "graph_variant": args.graph_variant,
+        "model": "Ridge",
+        "targets": {target_name: metrics["targets"][target_name]["ridge"] for target_name in target_names},
+    }
+    gcn_metrics_v2_path = tagged_name("gcn_metrics_v2", args.output_tag, ".json")
+    ridge_metrics_v2_path = tagged_name("ridge_metrics_v2", args.output_tag, ".json")
+    with open(gcn_metrics_v2_path, "w", encoding="utf-8") as fh:
+        json.dump(gcn_metrics_v2, fh, indent=2)
+    with open(ridge_metrics_v2_path, "w", encoding="utf-8") as fh:
+        json.dump(ridge_metrics_v2, fh, indent=2)
 
     torch.save(
         {

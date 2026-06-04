@@ -42,9 +42,10 @@ import torch.nn.functional as F
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import Ridge
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import StandardScaler
 
+from evaluation import compare_models, compute_metrics, dataframe_to_markdown, save_metrics_table
 import graph_model as static_model
 import graph_model_temporal as temporal_model
 
@@ -95,11 +96,7 @@ def haversine_km(lon1: float, lat1: float, lon2: float, lat2: float) -> float:
 
 
 def metric_block(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
-    return {
-        "rmse": rmse(y_true, y_pred),
-        "mae": float(mean_absolute_error(y_true, y_pred)),
-        "r2": float(r2_score(y_true, y_pred)),
-    }
+    return compute_metrics(y_true, y_pred)
 
 
 def normalize_adjacency(matrix: np.ndarray) -> np.ndarray:
@@ -109,8 +106,14 @@ def normalize_adjacency(matrix: np.ndarray) -> np.ndarray:
     return (matrix * inv_sqrt[:, None] * inv_sqrt[None, :]).astype(np.float32)
 
 
-def build_relation_adjacencies(node_ids: list[str], graph_variant: str) -> tuple[list[str], list[np.ndarray]]:
-    edges = pd.read_csv(GRAPH_DIR / "edges.csv", low_memory=False)
+def build_relation_adjacencies(
+    node_ids: list[str],
+    graph_variant: str,
+    edges_df: pd.DataFrame | None = None,
+) -> tuple[list[str], list[np.ndarray]]:
+    """Build per-relation adjacency matrices, optionally from a supplied edge table."""
+
+    edges = edges_df.copy() if edges_df is not None else pd.read_csv(GRAPH_DIR / "edges.csv", low_memory=False)
     edges = temporal_model.filter_edges_for_variant(edges, graph_variant)
     relation_order = [edge_type for edge_type in ["spatial", "same_route", "same_functional_class"] if edge_type in set(edges["edge_type"])]
     index = {node_id: idx for idx, node_id in enumerate(node_ids)}
@@ -163,6 +166,44 @@ class RelationSnapshotGCN(nn.Module):
         z = F.relu(z)
         z = self.dropout(z)
         return self.out(z).squeeze(-1)
+
+
+class MultiTaskRelationGCN(nn.Module):
+    """Relation-aware GCN with a shared encoder and one head per distress target."""
+
+    def __init__(self, input_dim: int, num_relations: int, n_targets: int, hidden_dim: int = 64, dropout: float = 0.2):
+        super().__init__()
+        self.rel1 = nn.ModuleList([nn.Linear(input_dim, hidden_dim, bias=False) for _ in range(num_relations)])
+        self.rel2 = nn.ModuleList([nn.Linear(hidden_dim, hidden_dim, bias=False) for _ in range(num_relations)])
+        self.self1 = nn.Linear(input_dim, hidden_dim)
+        self.self2 = nn.Linear(hidden_dim, hidden_dim)
+        self.dropout = nn.Dropout(dropout)
+        head_hidden = max(hidden_dim // 2, 1)
+        self.heads = nn.ModuleList(
+            [
+                nn.Sequential(
+                    nn.Linear(hidden_dim, head_hidden),
+                    nn.ReLU(),
+                    nn.Linear(head_hidden, 1),
+                )
+                for _ in range(n_targets)
+            ]
+        )
+
+    def forward(self, x: torch.Tensor, adjs: list[torch.Tensor]) -> torch.Tensor:
+        h = self.self1(x)
+        for adj, layer in zip(adjs, self.rel1):
+            h = h + layer(torch.matmul(adj, x))
+        h = F.relu(h)
+        h = self.dropout(h)
+
+        z = self.self2(h)
+        for adj, layer in zip(adjs, self.rel2):
+            z = z + layer(torch.matmul(adj, h))
+        z = F.relu(z)
+        z = self.dropout(z)
+        outputs = [head(z).squeeze(-1) for head in self.heads]
+        return torch.stack(outputs, dim=-1)
 
 
 def evaluate_temporal_model(
@@ -244,6 +285,173 @@ def train_temporal_rgcn(
     return model, metrics
 
 
+def train_multitask_rgcn(
+    x: np.ndarray,
+    y: np.ndarray,
+    y_mask: np.ndarray,
+    split_masks: dict[str, np.ndarray],
+    relation_adjs: list[np.ndarray],
+    target_means: dict[str, float],
+    target_stds: dict[str, float],
+    hidden_dim: int = 64,
+    max_epochs: int = 180,
+    patience: int = 20,
+) -> tuple[MultiTaskRelationGCN, float, dict[str, object]]:
+    """Train a multi-task relation-aware GCN with train-only target scaling."""
+
+    target_cols = list(target_means.keys())
+    model = MultiTaskRelationGCN(
+        input_dim=x.shape[-1],
+        num_relations=len(relation_adjs),
+        n_targets=len(target_cols),
+        hidden_dim=hidden_dim,
+        dropout=0.2,
+    )
+    opt = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-4)
+    adjs = [torch.tensor(adj, dtype=torch.float32) for adj in relation_adjs]
+    train_mask = split_masks["train"]
+    val_mask = split_masks["val"]
+    means_t = torch.tensor([target_means[target] for target in target_cols], dtype=torch.float32)
+    stds_t = torch.tensor([target_stds[target] for target in target_cols], dtype=torch.float32)
+    best_state = None
+    best_val = float("inf")
+    no_improve = 0
+
+    for epoch in range(1, max_epochs + 1):
+        model.train()
+        opt.zero_grad()
+        losses = []
+        for yi in range(x.shape[0]):
+            if not train_mask[yi].any():
+                continue
+            pred = model(torch.tensor(x[yi], dtype=torch.float32), adjs)
+            target = torch.tensor(y[yi], dtype=torch.float32)
+            target_mask = torch.tensor(y_mask[yi], dtype=torch.bool)
+            split_mask_t = torch.tensor(train_mask[yi], dtype=torch.bool)
+            target_losses = []
+            for ti in range(len(target_cols)):
+                joint_mask = split_mask_t & target_mask[:, ti]
+                if not joint_mask.any():
+                    continue
+                pred_t = pred[:, ti][joint_mask]
+                true_t = target[:, ti][joint_mask]
+                z_pred = (pred_t - means_t[ti]) / stds_t[ti]
+                z_true = (true_t - means_t[ti]) / stds_t[ti]
+                target_losses.append(F.mse_loss(z_pred, z_true))
+            if target_losses:
+                losses.append(torch.stack(target_losses).mean())
+        loss = torch.stack(losses).mean()
+        loss.backward()
+        opt.step()
+
+        _, val_metrics = evaluate_multitask_model(
+            model,
+            x,
+            y,
+            y_mask,
+            {"val": val_mask},
+            adjs,
+            target_cols,
+            target_means,
+            target_stds,
+            return_val_z_mse=True,
+        )
+        val_loss = float(val_metrics["val_z_mse"])
+        if val_loss + 1e-9 < best_val:
+            best_val = val_loss
+            best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+            no_improve = 0
+        else:
+            no_improve += 1
+        if epoch == 1 or epoch % 20 == 0:
+            log(f"Multi-task R-GCN epoch={epoch:03d} train_loss={loss.item():.4f} val_z_mse={val_loss:.4f}")
+        if no_improve >= patience:
+            break
+
+    if best_state is not None:
+        model.load_state_dict(best_state)
+    metrics, aux = evaluate_multitask_model(
+        model,
+        x,
+        y,
+        y_mask,
+        split_masks,
+        adjs,
+        target_cols,
+        target_means,
+        target_stds,
+        return_val_z_mse=True,
+    )
+    return model, best_val, {"metrics": metrics, "val_z_mse": aux["val_z_mse"]}
+
+
+def evaluate_multitask_model(
+    model: nn.Module,
+    x: np.ndarray,
+    y: np.ndarray,
+    y_mask: np.ndarray,
+    split_masks: dict[str, np.ndarray],
+    adjs,
+    target_cols: list[str],
+    target_means: dict[str, float],
+    target_stds: dict[str, float],
+    return_val_z_mse: bool = False,
+) -> tuple[dict[str, dict[str, dict[str, float]]], dict[str, float]] | dict[str, dict[str, dict[str, float]]]:
+    """Evaluate multi-task predictions on the original scale, per distress target."""
+
+    metrics: dict[str, dict[str, dict[str, float]]] = {}
+    model.eval()
+    if not isinstance(adjs, list):
+        adjs = [torch.tensor(adj, dtype=torch.float32) for adj in adjs]
+    aux: dict[str, float] = {}
+    means = np.asarray([target_means[target] for target in target_cols], dtype=float)
+    stds = np.asarray([target_stds[target] for target in target_cols], dtype=float)
+    with torch.no_grad():
+        preds_by_year = []
+        for yi in range(x.shape[0]):
+            x_t = torch.tensor(x[yi], dtype=torch.float32)
+            pred = model(x_t, adjs).cpu().numpy()
+            preds_by_year.append(pred)
+        preds = np.stack(preds_by_year, axis=0)
+
+    for split_name, split_mask in split_masks.items():
+        metrics[split_name] = {}
+        z_losses = []
+        valid_targets = []
+        for ti, target in enumerate(target_cols):
+            joint_mask = split_mask & y_mask[:, :, ti]
+            true = y[:, :, ti][joint_mask]
+            pred = preds[:, :, ti][joint_mask]
+            if true.size == 0:
+                metrics[split_name][target] = {"r2": np.nan, "mae": np.nan, "rmse": np.nan, "smape": np.nan, "mape": np.nan, "n_samples": 0}
+                continue
+            metrics[split_name][target] = compute_metrics(true, pred)
+            if true.size >= 30:
+                valid_targets.append(target)
+            z_pred = (pred - means[ti]) / stds[ti]
+            z_true = (true - means[ti]) / stds[ti]
+            z_losses.append(float(np.mean((z_pred - z_true) ** 2)))
+
+        if valid_targets:
+            metrics[split_name]["MACRO_MEAN"] = {
+                "r2": float(np.mean([metrics[split_name][target]["r2"] for target in valid_targets])),
+                "mae": float(np.mean([metrics[split_name][target]["mae"] for target in valid_targets])),
+                "rmse": float(np.mean([metrics[split_name][target]["rmse"] for target in valid_targets])),
+                "smape": float(np.mean([metrics[split_name][target]["smape"] for target in valid_targets])),
+                "mape": float(np.mean([metrics[split_name][target]["mape"] for target in valid_targets])),
+                "n_samples": int(sum(metrics[split_name][target]["n_samples"] for target in valid_targets)),
+            }
+        else:
+            metrics[split_name]["MACRO_MEAN"] = {"r2": np.nan, "mae": np.nan, "rmse": np.nan, "smape": np.nan, "mape": np.nan, "n_samples": 0}
+
+        if z_losses:
+            aux[f"{split_name}_z_mse"] = float(np.mean(z_losses))
+
+    if return_val_z_mse:
+        return metrics, {"val_z_mse": aux.get("val_z_mse", np.inf)}
+    return metrics
+
+
 def train_temporal_gcn_with_masks(
     x: np.ndarray,
     y: np.ndarray,
@@ -310,6 +518,20 @@ def build_year_split_masks(data: temporal_model.TemporalData) -> dict[str, np.nd
     for year in data.test_years:
         masks["test"][year_index[year]] = data.mask[year_index[year]]
     return masks
+
+
+def save_v2_comparison(stem: str, results: dict[str, dict[str, object]]) -> pd.DataFrame:
+    """Save a comparison table for a collection of model results."""
+
+    frame = compare_models(results)
+    save_metrics_table(
+        frame,
+        REPORT_DIR / f"{stem}.json",
+        REPORT_DIR / f"{stem}.md",
+    )
+    print(f"\n### {stem}")
+    print(dataframe_to_markdown(frame))
+    return frame
 
 
 def greedy_holdout_groups(counts: pd.Series, val_share: float = 0.15, test_share: float = 0.20) -> tuple[set[str], set[str]]:
@@ -430,7 +652,7 @@ def temporal_rgcn_experiment() -> tuple[pd.DataFrame, dict[str, object]]:
         data, _ = temporal_model.prepare_temporal_data(variant, treatment_mode="experiment")
         relation_names, relation_adjs = build_relation_adjacencies(data.node_ids, variant)
         split_masks = build_year_split_masks(data)
-        _, metrics = train_temporal_rgcn(data.x_with_maint, data.y, split_masks, relation_adjs)
+        model, metrics = train_temporal_rgcn(data.x_with_maint, data.y, split_masks, relation_adjs)
         rows.append(
             {
                 "graph_variant": variant,
@@ -443,7 +665,28 @@ def temporal_rgcn_experiment() -> tuple[pd.DataFrame, dict[str, object]]:
             }
         )
         summary["variants"][variant] = {"relations": relation_names, "metrics": metrics}
+        torch.save(
+            {
+                "model_type": "relation_snapshot_gcn",
+                "graph_variant": variant,
+                "treatment_mode": "experiment",
+                "relation_names": relation_names,
+                "feature_cols": data.local_feature_cols,
+                "node_ids": data.node_ids,
+                "years": data.years,
+                "hidden_dim": 64,
+                "state_dict": model.state_dict(),
+            },
+            GRAPH_DIR / f"temporal_rgcn_{variant}.pt",
+        )
     frame = pd.DataFrame(rows)
+    save_v2_comparison(
+        "rgcn_temporal_metrics_v2",
+        {
+            f"R-GCN ({row['graph_variant']})": summary["variants"][row["graph_variant"]]["metrics"]
+            for row in rows
+        },
+    )
     return frame, summary
 
 
@@ -494,6 +737,22 @@ def temporal_ood_experiment() -> tuple[pd.DataFrame, dict[str, object]]:
             "rgcn_metrics": rgcn_metrics,
             "relations": relation_names,
         }
+    save_v2_comparison(
+        "ood_temporal_rf_metrics_v2",
+        {f"RF ({variant})": summary["variants"][variant]["tabular"]["rf_local"] for variant in TEMPORAL_VARIANTS},
+    )
+    save_v2_comparison(
+        "ood_temporal_ridge_metrics_v2",
+        {f"Ridge ({variant})": summary["variants"][variant]["tabular"]["ridge_local"] for variant in TEMPORAL_VARIANTS},
+    )
+    save_v2_comparison(
+        "ood_temporal_gcn_metrics_v2",
+        {f"GCN ({variant})": summary["variants"][variant]["gcn_metrics"] for variant in TEMPORAL_VARIANTS},
+    )
+    save_v2_comparison(
+        "ood_temporal_rgcn_metrics_v2",
+        {f"R-GCN ({variant})": summary["variants"][variant]["rgcn_metrics"] for variant in TEMPORAL_VARIANTS},
+    )
     return pd.DataFrame(rows), summary
 
 
@@ -625,6 +884,22 @@ def static_ood_experiment() -> tuple[pd.DataFrame, dict[str, object]]:
             row[f"{target_name}_ridge_test_r2"] = metrics["targets"][target_name]["ridge"]["test"]["r2"]
         rows.append(row)
         summary["variants"][variant] = {"split_info": split_info, "metrics": metrics}
+    save_v2_comparison(
+        "ood_static_mlp_metrics_v2",
+        {
+            f"Static MLP {variant}::{target_name}": summary["variants"][variant]["metrics"]["targets"][target_name]["mlp"]
+            for variant in STATIC_VARIANTS
+            for target_name in target_names
+        },
+    )
+    save_v2_comparison(
+        "ood_static_ridge_metrics_v2",
+        {
+            f"Static Ridge {variant}::{target_name}": summary["variants"][variant]["metrics"]["targets"][target_name]["ridge"]
+            for variant in STATIC_VARIANTS
+            for target_name in target_names
+        },
+    )
     return pd.DataFrame(rows), summary
 
 

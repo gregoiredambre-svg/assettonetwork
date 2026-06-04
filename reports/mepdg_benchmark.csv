@@ -1,0 +1,5 @@
+model,r2_train,r2_test,mae_test,rmse_test,notes
+RF local,0.6464934593528152,0.5233442054918064,5.639960990138986,9.59779269951216,"RandomForestRegressor(n_estimators=300,max_depth=12,min_samples_leaf=3); standard temporal split."
+R-GCN baseline,0.4412527110557153,0.5424480251970898,5.690203424061046,9.403491667527147,Saved single-task checkpoint on full_refined without materials sweep.
+Stacked MLP ensemble,0.615743504555902,0.5263215504453613,5.167113864199932,9.567770298103298,StackedEnsemble(meta_model=mlp) fit on validation predictions from RF + baseline R-GCN.
+R-GCN best materials sweep (climate_pavement),0.46130957573484443,0.5582047817039911,5.472570367420421,9.240158747294474,Reference only; loaded from reports/materials_weight_sweep.json.
