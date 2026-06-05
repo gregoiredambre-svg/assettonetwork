@@ -1,6 +1,0 @@
-feature_name,source_table,source_fields,meaning
-had_treatment_event_t,EXPERIMENT_SECTION,"CN_ASSIGN_DATE, ASSIGN_DATE, DEASSIGN_DATE, CN_CHANGE_REASON, CN_CHANGE_REASON_EXP",At least one dated project/treatment event is recorded for this section in year t.
-years_since_last_treatment_event,EXPERIMENT_SECTION,CN_ASSIGN_DATE / ASSIGN_DATE,Years since the last recorded project/treatment event for the section.
-treatment_count_last_3yr / treatment_count_last_5yr,EXPERIMENT_SECTION,CN_ASSIGN_DATE / ASSIGN_DATE,Rolling count of dated section treatment events over the past 3 or 5 years.
-had_crack_sealing_t / had_overlay_t / had_patching_t / had_surface_treatment_t / had_major_rehab_t,EXPERIMENT_SECTION,CN_CHANGE_REASON_EXP,Broad treatment categories derived from change-reason labels.
-neighbour_*,EXPERIMENT_SECTION + graph,section treatment features aggregated through graph adjacency,Neighbourhood exposure to recent section project/treatment events.

@@ -1,62 +1,71 @@
 # Network-Aware Road Maintenance Modelling
 
-This repository contains the modelling and analysis code for a Cambridge MPhil dissertation on graph-based pavement deterioration modelling and maintenance decision support.
+This is the cleaned project for the graph-based road-maintenance dissertation pipeline.
+It keeps one coherent flow:
 
-## What to look at first
+1. Build pavement material summaries.
+2. Build a section-level interdependency graph.
+3. Build a temporal section-year panel.
+4. Train local, GCN, and relation-aware R-GCN deterioration models.
+5. Estimate network-wide impacts of project/closure combinations.
 
-- `streamlit_app.py`
-  Main interactive app used for presentation and dissertation walkthroughs.
-- `graph_construction.py`
-  Builds the section-level interdependency graph and exports graph artifacts.
-- `graph_model_temporal.py`
-  Prepares temporal panel data and baseline graph-learning inputs.
-- `part1_extensions.py`
-  Contains the relation-aware graph models and temporal R-GCN training logic.
-- `evaluation.py`
-  Shared evaluation metrics used across experiments.
-- `ensemble.py`
-  Ensemble logic combining local and graph-based predictors.
+The graph is a section-level interdependency graph, not a full traffic-assignment road network.
 
-## Experiment runners
+## Core Files
 
-All one-off experiment and reporting entry points now live under `scripts/`.
+- `pipeline.py` - single orchestration entry point.
+- `load_materials.py` - creates anti-leakage first-construction material summaries.
+- `graph_construction.py` - builds nodes, graph edges, project events, and conflict edges.
+- `graph_model_temporal.py` - builds the temporal panel and trains local/GCN deterioration models.
+- `part1_extensions.py` - trains relation-aware R-GCN models.
+- `ensemble.py` - combines local RF and graph predictions.
+- `graph_model.py` - builds project-combination scenarios and trains the network-impact surrogate.
+- `evaluation.py` - shared metrics and reporting helpers.
 
-- `scripts/run_ensemble.py`
-- `scripts/run_singletask_per_distress.py`
-- `scripts/run_materials_experiments.py`
-- `scripts/run_traffic_sensitivity.py`
-- `scripts/run_ablation.py`
-- `scripts/run_multitask.py`
-- `scripts/run_osm_validation_reporting.py`
-- `scripts/run_distress_analysis.py`
-- `scripts/run_distress_full_inventory.py`
+## Data Layout
 
-## Final result files
+Raw inputs stay under `Research Data/`.
 
-Core results used by the app and dissertation are kept in:
+Key generated graph/model outputs stay under `graph_data/`:
 
-- `reports/`
-- `graph_data/`
+- `nodes.csv`, `edges.csv`, `projects.csv`
+- `section_materials.csv`
+- `temporal_rgcn_full_refined.pt`
+- `ensemble_results.json`
+- `network_model_metrics_full_refined.json`
+- `network_scenario_predictions_full_refined.csv`
 
-Key current outputs include:
+The only retained report summaries are under `reports/`:
 
-- `reports/treatment_feature_ablation.csv`
-- `reports/part1_rgcn_temporal.csv`
-- `reports/distress_model_comparison.csv`
-- `reports/materials_weight_sweep.json`
-- `reports/traffic_sensitivity.json`
-- `graph_data/osm_validation_findings.json`
-- `graph_data/ensemble_results.json`
-- `graph_data/singletask_per_distress_results.json`
+- `gcn_temporal_metrics_full_refined.json`
+- `part1_rgcn_temporal.csv`
+- `part1_rgcn_temporal.json`
 
-## Important interpretation
+## Run The Pipeline
 
-- The graph should be interpreted as a **section-level interdependency graph**, not as a fully routable road network.
-- `spatial + route` is the most relevant physical graph view for disruption-style reasoning.
-- `full_refined` is the most useful graph view for deterioration and treatment-context modelling.
-- The strongest pure predictive model is the RF/graph ensemble, while the strongest interpretable graph model is the relation-aware R-GCN.
+Run everything:
 
-## Repository hygiene
+```bash
+python3 pipeline.py
+```
 
-- Large caches and intermediate archives are intentionally ignored via `.gitignore`.
-- Older or intermediate experiment artifacts can be moved to local archive folders under `reports/archive/` and `graph_data/archive/` without affecting the app.
+Run selected steps:
+
+```bash
+python3 pipeline.py materials graph
+python3 pipeline.py temporal rgcn
+python3 pipeline.py network
+```
+
+Preview commands without running:
+
+```bash
+python3 pipeline.py --dry-run
+```
+
+## Main Interpretation
+
+- `full_refined` is the main graph view for deterioration modelling.
+- R-GCN is the clearest interpretable graph model because it keeps separate relation channels: spatial, same-route, and same-functional-class.
+- RF/R-GCN ensemble results are kept in `graph_data/ensemble_results.json`.
+- The network-impact model estimates proxy impacts of project combinations: extra travel-time proxy, connectivity loss, disconnected OD share, and an overall disruption score.

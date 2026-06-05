@@ -1,4 +1,0 @@
-graph_variant,nodes,edges,average_degree,median_degree,max_degree,isolated_nodes,isolated_share_pct,connected_components,largest_component_nodes,largest_component_share_pct,spatial_edges,same_route_edges,same_functional_class_edges
-spatial,2426,10186,8.397361912613356,9.0,17,52,2.1434460016488046,218,141,5.812036273701566,10186,0,0
-spatial_route,2426,11965,8.637262984336356,9.0,18,48,1.978565539983512,207,141,5.812036273701566,10186,1779,0
-full_refined,2426,17944,8.929925803792251,9.0,19,48,1.978565539983512,204,141,5.812036273701566,10186,1779,5979
